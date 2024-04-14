@@ -1,21 +1,49 @@
 package team.discordbe.domain.user.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
 @Entity
-@Table(name= "USERS") //User로 하려했으나 H2-console과 예약어로 충돌이 남.
+@Table(name= "USERS")
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
     private Long id;
 
-/*
-    private String email;
-    private String hashedPassword;
-    friends, groups, createdAt, updatedAt
-*/
     @Column(name = "nick_name", unique = true, nullable = false, length = 50)
     private String nickName;
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Column(name = "hashed_password")
+    private String hashedPassword;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    public void setUser(String nickName, String imageUrl, String password) {
+        this.nickName = nickName;
+        this.imageUrl = imageUrl;
+//        hashed password logic
+    }
+
+    public static User from(UserRequestDto dto) {
+        return User.builder()
+                .email(dto.getEmail())
+                .nickName(dto.getNickName())
+                .hashedPassword(dto.getPassword())
+                .build();
+    }
 }
+
