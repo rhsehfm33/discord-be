@@ -1,17 +1,14 @@
 package team.discordbe.domain.user.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
 @Entity
 @Table(name= "USERS")
 @Getter
-@Builder
+@Builder(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseEntity {

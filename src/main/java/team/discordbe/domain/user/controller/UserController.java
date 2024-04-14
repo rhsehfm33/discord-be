@@ -28,6 +28,6 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable("id") Integer id) {
         this.userService.deleteUser(id);
-        return ResponseEntity.ok().body("삭제 성공 텍스트를 아직 결정 못했습니다.");
+        return ResponseEntity.ok().body("삭제 완료");
     }
 }
