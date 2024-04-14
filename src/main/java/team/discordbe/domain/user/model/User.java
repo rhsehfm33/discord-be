@@ -35,7 +35,7 @@ public class User extends BaseEntity {
     public void setUser(String nickName, String imageUrl, String password) {
         this.nickName = nickName;
         this.imageUrl = imageUrl;
-//        hashed password logic
+        this.hashedPassword = password;
     }
 
     public static User from(UserRequestDto dto) {
