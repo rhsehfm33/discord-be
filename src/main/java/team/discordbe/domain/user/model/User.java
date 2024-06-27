@@ -1,11 +1,9 @@
 package team.discordbe.domain.user.model;
 
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,17 +12,15 @@ import lombok.NoArgsConstructor;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
-@Entity
-@Table(name= "USERS")
+@Document
 @Getter
 @Builder(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
-    private Long id;
+    private String id;
 
     @Column(name = "nick_name", unique = true, nullable = false, length = 50)
     private String nickName;
