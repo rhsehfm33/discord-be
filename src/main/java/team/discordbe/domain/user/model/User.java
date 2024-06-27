@@ -1,7 +1,16 @@
 package team.discordbe.domain.user.model;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
@@ -23,8 +32,8 @@ public class User extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(name = "hashed_password")
-    private String hashedPassword;
+    @Column(name = "password")
+    private String password;
 
     @Column(name = "image_url")
     private String imageUrl;
@@ -32,14 +41,14 @@ public class User extends BaseEntity {
     public void setUser(String nickName, String imageUrl, String password) {
         this.nickName = nickName;
         this.imageUrl = imageUrl;
-        this.hashedPassword = password;
+        this.password = password;
     }
 
     public static User from(UserRequestDto dto) {
         return User.builder()
                 .email(dto.getEmail())
                 .nickName(dto.getNickName())
-                .hashedPassword(dto.getPassword())
+                .password(dto.getPassword())
                 .build();
     }
 }
