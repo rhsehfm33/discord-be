@@ -15,26 +15,26 @@ import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.services.UserService;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(@RequestBody UserRequestDto dto) {
-        UserResponseDto createdUser = this.userService.createdUser(dto);
+        UserResponseDto createdUser = userService.createdUser(dto);
         return ResponseEntity.ok().body(createdUser);
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Integer id, @RequestBody UserRequestDto dto) {
-        UserResponseDto updatedUser = this.userService.updateUser(id, dto);
+        UserResponseDto updatedUser = userService.updateUser(id, dto);
         return ResponseEntity.ok().body(updatedUser);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable("id") Integer id) {
-        this.userService.deleteUser(id);
+        userService.deleteUser(id);
         return ResponseEntity.ok().body("삭제 완료");
     }
 }

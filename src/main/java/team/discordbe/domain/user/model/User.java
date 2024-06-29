@@ -4,48 +4,38 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
 @Document
 @Getter
-@Builder(access = AccessLevel.PRIVATE)
-@NoArgsConstructor
-@AllArgsConstructor
 public class User extends BaseEntity {
     @Id
-    @Column
     private String id;
 
+    @Setter
     @Column(name = "nick_name", unique = true, nullable = false, length = 50)
     private String nickName;
 
+    @Setter
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Setter
     @Column(name = "password")
     private String password;
 
+    @Setter
     @Column(name = "image_url")
     private String imageUrl;
 
-    public void setUser(String nickName, String imageUrl, String password) {
-        this.nickName = nickName;
-        this.imageUrl = imageUrl;
-        this.password = password;
-    }
-
-    public static User from(UserRequestDto dto) {
-        return User.builder()
-                .email(dto.getEmail())
-                .nickName(dto.getNickName())
-                .password(dto.getPassword())
-                .build();
+    public User(UserRequestDto userRequestDto) {
+        this.nickName = userRequestDto.getNickName();
+        this.email = userRequestDto.getEmail();
+        this.password = userRequestDto.getPassword();
+        this.imageUrl = userRequestDto.getImageUrl();
     }
 }
 
