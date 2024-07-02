@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -15,10 +16,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import team.discordbe.domain.user.repository.UserRepository;
 import team.discordbe.global.handler.CustomAuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -40,7 +43,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository) throws Exception {
         http
             .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource()))
             .headers(headersConfigurer -> headersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
@@ -49,7 +52,7 @@ public class SecurityConfig {
                 .anyRequest().permitAll())
             .formLogin(formLoginConfigurer -> formLoginConfigurer
                 .loginPage("/login")
-                .successHandler(new CustomAuthenticationSuccessHandler())
+                .successHandler(new CustomAuthenticationSuccessHandler(userRepository))
                 .usernameParameter("email")
                 .permitAll())
             .logout(logoutConfigurer -> logoutConfigurer.logoutUrl("/logout"));

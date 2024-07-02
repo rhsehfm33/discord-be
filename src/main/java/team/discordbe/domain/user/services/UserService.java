@@ -36,7 +36,7 @@ public class UserService implements UserDetailsService {
         return new UserResponseDto(user);
     }
 
-    public UserResponseDto updateUser(Integer id, UserRequestDto dto) {
+    public UserResponseDto updateUser(String id, UserRequestDto dto) {
         User targetUser = userRepository.findById(id).orElseThrow(() ->
             new EntityNotFoundException("User not found with id : " + id));
 
@@ -45,7 +45,7 @@ public class UserService implements UserDetailsService {
         return new UserResponseDto(userRepository.save(targetUser));
     }
 
-    public void deleteUser(Integer id) {
+    public void deleteUser(String id) {
         userRepository.deleteById(id);
     }
 }

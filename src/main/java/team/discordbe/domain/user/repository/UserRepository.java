@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import team.discordbe.domain.user.model.User;
 
-public interface UserRepository extends MongoRepository<User, Integer> {
+public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmail(String email);
+
+    Optional<User> findByNickName(String email);
 }

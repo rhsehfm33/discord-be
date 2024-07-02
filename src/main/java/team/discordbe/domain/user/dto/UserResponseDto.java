@@ -7,10 +7,10 @@ import team.discordbe.domain.user.model.User;
 
 @Getter
 public class UserResponseDto {
-    private String id;
-    private String email;
-    private String nickName;
-    private LocalDateTime createdAt;
+    private final String id;
+    private final String email;
+    private final String nickName;
+    private final LocalDateTime createdAt;
 
     public UserResponseDto(User user) {
         this.id = user.getId();

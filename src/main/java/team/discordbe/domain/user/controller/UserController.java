@@ -27,13 +27,13 @@ public class UserController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Integer id, @RequestBody UserRequestDto dto) {
+    public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") String id, @RequestBody UserRequestDto dto) {
         UserResponseDto updatedUser = userService.updateUser(id, dto);
         return ResponseEntity.ok().body(updatedUser);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable("id") Integer id) {
+    public ResponseEntity<String> deleteUser(@PathVariable("id") String id) {
         userService.deleteUser(id);
         return ResponseEntity.ok().body("삭제 완료");
     }
