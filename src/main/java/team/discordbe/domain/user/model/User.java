@@ -9,8 +9,8 @@ import lombok.Setter;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.global.base.BaseEntity;
 
-@Document
 @Getter
+@Document(collection = "users")
 public class User extends BaseEntity {
     @Id
     private String id;

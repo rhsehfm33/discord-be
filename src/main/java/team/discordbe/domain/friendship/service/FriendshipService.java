@@ -1,9 +1,13 @@
 package team.discordbe.domain.friendship.service;
 
-import static team.discordbe.domain.friendship.constant.FriendStatus.*;
-
 import java.util.List;
 
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.LookupOperation;
+import org.springframework.data.mongodb.core.aggregation.MatchOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -11,9 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.friendship.constant.FriendStatus;
+import team.discordbe.domain.friendship.dto.FriendshipRequestDto;
+import team.discordbe.domain.friendship.dto.FriendshipResponseDto;
 import team.discordbe.domain.friendship.model.Friendship;
 import team.discordbe.domain.friendship.repository.FriendshipRepository;
-import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
 
@@ -24,84 +29,51 @@ import team.discordbe.domain.user.repository.UserRepository;
 public class FriendshipService {
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final MongoTemplate mongoTemplate;
 
-    public List<UserResponseDto> getFriendsByStatus(Authentication authentication, FriendStatus friendStatus) {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
-        List<Friendship> friendships = friendshipRepository.findByFromUserIdAndFriendStatus(fromUserId, friendStatus);
-        List<String> targetUserIds = friendships.stream().map(Friendship::getFromUserId).toList();
-        List<User> targetUsers = userRepository.findAllById(targetUserIds);
-        return targetUsers.stream().map(UserResponseDto::new).toList();
+    public List<FriendshipResponseDto> getFriendsByStatus(Authentication authentication, FriendStatus friendStatus) {
+        String myUserId = ((User) authentication.getPrincipal()).getId();
+
+        MatchOperation matchOperation = Aggregation.match(
+            Criteria.where("fromUser.id").is(myUserId).and("friendStatus").is(friendStatus)
+        );
+        LookupOperation lookupUser = Aggregation.lookup("users", "toUser.$id", "_id", "toUserDetails");
+        Aggregation aggregation = Aggregation.newAggregation(matchOperation, lookupUser);
+        AggregationResults<Friendship> friendships = mongoTemplate
+            .aggregate(aggregation, "friendships", Friendship.class);
+
+        List<FriendshipResponseDto> friendshipResponseDtos = friendships.getMappedResults()
+            .stream()
+            .map(friendship -> new FriendshipResponseDto(friendship.getId(), friendship.getToUser()))
+            .toList();
+        return friendshipResponseDtos;
     }
 
     public FriendStatus getFriendshipStatus(Authentication authentication, String toUserNickName) {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
+        User fromUser = (User) authentication.getPrincipal();
         User toUser = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
             new IllegalArgumentException("Invalid nickname: " + toUserNickName));
-        String toUserId = toUser.getId();
 
-        Friendship friendship = friendshipRepository.findByFromUserIdAndToUserId(fromUserId, toUserId).orElse(null);
-        if (friendship == null) {
-            return null;
-        } else {
-            return friendship.getFriendStatus();
-        }
+        Friendship friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
+        return friendship.getFriendStatus();
     }
 
-    public List<UserResponseDto> getReceivedInvitations(Authentication authentication) {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
-        List<Friendship> friendships = friendshipRepository.findByToUserIdAndFriendStatus(fromUserId, INVITING);
-        List<String> targetUserIds = friendships.stream().map(Friendship::getFromUserId).toList();
-        List<User> targetUsers = userRepository.findAllById(targetUserIds);
-        return targetUsers.stream().map(UserResponseDto::new).toList();
+    public void updateFriendship(Authentication authentication, FriendshipRequestDto friendshipRequestDto) throws IllegalArgumentException {
+        String toUserNickName = friendshipRequestDto.getToUserNickName();
+        User fromUser = (User) authentication.getPrincipal();
+        User toUser = userRepository.findByNickName(toUserNickName)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid nickname: " + toUserNickName));
+
+        Friendship friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
+        friendship.setFriendStatus(friendshipRequestDto.getFriendStatus());
     }
 
-    public void acceptFriendInvitation(Authentication authentication, String inviterNickName) {
-        String inviteeId = ((User) authentication.getPrincipal()).getId();
-        String inviterId = userRepository.findByNickName(inviterNickName).orElseThrow(() ->
-            new IllegalArgumentException("Invalid nickname: " + inviterNickName)).getId();
-
-        Friendship inviterFriendship = friendshipRepository.findByFromUserIdAndToUserId(inviterId, inviteeId).orElse(null);
-        Friendship inviteeFriendship = friendshipRepository.findByFromUserIdAndToUserId(inviteeId, inviterId).orElse(null);
-        if (inviterFriendship != null && inviteeFriendship == null &&
-            inviterFriendship.getFriendStatus().equals(INVITING)) {
-            inviterFriendship.setFriendStatus(FRIEND);
-            friendshipRepository.save(new Friendship(inviteeId, inviterId, FRIEND));
-        } else {
-            throw new IllegalArgumentException("Invalid acceptance");
-        }
-    }
-
-    public void sendFriendInvitation(Authentication authentication, String toUserNickName) throws IllegalArgumentException {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
-        String toUserId = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
-            new IllegalArgumentException("Invalid nickname: " + toUserNickName)).getId();
-
-        Friendship friendship = friendshipRepository.findByFromUserIdAndToUserId(fromUserId, toUserId).orElse(null);
-        if (friendship == null) {
-            friendshipRepository.save(new Friendship(fromUserId, toUserId, FRIEND));
-        } else {
-            throw new IllegalArgumentException("It already has " + friendship.getFriendStatus() + " status.");
-        }
-    }
-
-    public void blockUser(Authentication authentication, String toUserNickName) throws IllegalArgumentException {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
-        String toUserId = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
-            new IllegalArgumentException("Invalid nickname: " + toUserNickName)).getId();
-
-        Friendship friendship = friendshipRepository.findByFromUserIdAndToUserId(fromUserId, toUserId).orElse(null);
-        if (friendship == null) {
-            friendshipRepository.save(new Friendship(fromUserId, toUserId, BLOCKING));
-        } else {
-            friendship.setFriendStatus(BLOCKING);
-        }
-    }
-
-    public void deleteFriend(Authentication authentication, String toUserNickName) throws IllegalArgumentException {
-        String fromUserId = ((User) authentication.getPrincipal()).getId();
-        String toUserId = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
-            new IllegalArgumentException("Invalid nickname: " + toUserNickName)).getId();
-
-        friendshipRepository.findByFromUserIdAndToUserId(fromUserId, toUserId).ifPresent(friendshipRepository::delete);
+    public void deleteFriendship(Authentication authentication, String friendshipId) throws IllegalArgumentException {
+        User fromUser = (User) authentication.getPrincipal();
+        Friendship friendship = friendshipRepository.findByIdAndFromUser(friendshipId, fromUser)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
+        friendshipRepository.delete(friendship);
     }
 }

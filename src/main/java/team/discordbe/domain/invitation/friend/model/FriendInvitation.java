@@ -1,17 +1,15 @@
-package team.discordbe.domain.friendship.model;
+package team.discordbe.domain.invitation.friend.model;
 
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.persistence.Id;
 import lombok.Getter;
-import lombok.Setter;
-import team.discordbe.domain.friendship.constant.FriendStatus;
 import team.discordbe.domain.user.model.User;
 
 @Getter
-@Document
-public class Friendship {
+@Document(collection = "friend_invitations")
+public class FriendInvitation {
     @Id
     private String id;
 
@@ -21,12 +19,8 @@ public class Friendship {
     @DBRef
     private final User toUser;
 
-    @Setter
-    private FriendStatus friendStatus;
-
-    public Friendship(User fromUser, User toUser, FriendStatus friendStatus) {
+    public FriendInvitation(User fromUser, User toUser) {
         this.fromUser = fromUser;
         this.toUser = toUser;
-        this.friendStatus = friendStatus;
     }
 }
