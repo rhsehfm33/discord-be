@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +39,12 @@ public class FriendInvitationController {
     }
 
     @PutMapping("/{invitationId}")
-    public void accept(Authentication authentication, String invitationId) {
+    public void accept(Authentication authentication, @PathVariable String invitationId) {
          friendInvitationService.accept(authentication, invitationId);
+    }
+
+    @DeleteMapping("/{invitationId}")
+    public void cancel(Authentication authentication, @PathVariable String invitationId) {
+        friendInvitationService.cancel(authentication, invitationId);
     }
 }

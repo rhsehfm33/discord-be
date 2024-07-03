@@ -1,7 +1,9 @@
 package team.discordbe.domain.friendship.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -35,7 +37,7 @@ public class FriendshipService {
         String myUserId = ((User) authentication.getPrincipal()).getId();
 
         MatchOperation matchOperation = Aggregation.match(
-            Criteria.where("fromUser.id").is(myUserId).and("friendStatus").is(friendStatus)
+            Criteria.where("fromUser.$id").is(new ObjectId(myUserId)).and("friendStatus").is(friendStatus)
         );
         LookupOperation lookupUser = Aggregation.lookup("users", "toUser.$id", "_id", "toUserDetails");
         Aggregation aggregation = Aggregation.newAggregation(matchOperation, lookupUser);
@@ -54,9 +56,8 @@ public class FriendshipService {
         User toUser = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
             new IllegalArgumentException("Invalid nickname: " + toUserNickName));
 
-        Friendship friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
-        return friendship.getFriendStatus();
+        Optional<Friendship> friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser);
+        return friendship.isEmpty() ? null : friendship.get().getFriendStatus();
     }
 
     public void updateFriendship(Authentication authentication, FriendshipRequestDto friendshipRequestDto) throws IllegalArgumentException {
@@ -68,6 +69,7 @@ public class FriendshipService {
         Friendship friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser)
             .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
         friendship.setFriendStatus(friendshipRequestDto.getFriendStatus());
+        friendshipRepository.save(friendship);
     }
 
     public void deleteFriendship(Authentication authentication, String friendshipId) throws IllegalArgumentException {
