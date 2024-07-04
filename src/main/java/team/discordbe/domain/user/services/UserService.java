@@ -14,6 +14,7 @@ import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email).orElseThrow(() ->
-            new EntityNotFoundException("User not found with email : " + email));
+            new EntityNotFoundException("Wrong user info"));
 
         return new org.springframework.security.core.userdetails.User(
             user.getEmail(), user.getPassword(), Collections.emptyList());
@@ -36,9 +37,10 @@ public class UserService implements UserDetailsService {
         return new UserResponseDto(user);
     }
 
-    public UserResponseDto updateUser(String id, UserRequestDto dto) {
+    public UserResponseDto updateUser(String id, UserRequestDto dto)
+        throws CustomEntityNotFoundException {
         User targetUser = userRepository.findById(id).orElseThrow(() ->
-            new EntityNotFoundException("User not found with id : " + id));
+            new CustomEntityNotFoundException(null, "User not found with id : " + id));
 
         targetUser.setNickName(dto.getNickName());
         targetUser.setImageUrl(dto.getEmail());

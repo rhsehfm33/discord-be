@@ -23,8 +23,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
     // Do nothing to prevent redirect
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws
-        IOException {
+    public void onAuthenticationSuccess(
+        HttpServletRequest request, HttpServletResponse response, Authentication authentication
+    ) throws IOException {
         User user = userRepository.findByEmail(authentication.getName()).orElseThrow(() ->
             new EntityNotFoundException("User not found with email : " + authentication.getName()));
 

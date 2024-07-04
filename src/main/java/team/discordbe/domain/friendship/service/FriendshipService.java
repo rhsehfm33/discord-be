@@ -23,6 +23,8 @@ import team.discordbe.domain.friendship.model.Friendship;
 import team.discordbe.domain.friendship.repository.FriendshipRepository;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
+import team.discordbe.global.exception.CustomWrongArgumentException;
 
 @Service
 @Transactional
@@ -51,31 +53,34 @@ public class FriendshipService {
         return friendshipResponseDtos;
     }
 
-    public FriendStatus getFriendshipStatus(Authentication authentication, String toUserNickName) {
+    public FriendStatus getFriendshipStatus(Authentication authentication, String toUserNickName) throws
+        CustomWrongArgumentException {
         User fromUser = (User) authentication.getPrincipal();
         User toUser = userRepository.findByNickName(toUserNickName).orElseThrow(() ->
-            new IllegalArgumentException("Invalid nickname: " + toUserNickName));
+            new CustomWrongArgumentException(null, "Invalid nickname: " + toUserNickName));
 
         Optional<Friendship> friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser);
         return friendship.isEmpty() ? null : friendship.get().getFriendStatus();
     }
 
-    public void updateFriendship(Authentication authentication, FriendshipRequestDto friendshipRequestDto) throws IllegalArgumentException {
+    public void updateFriendship(Authentication authentication, FriendshipRequestDto friendshipRequestDto)
+        throws CustomWrongArgumentException, CustomEntityNotFoundException {
         String toUserNickName = friendshipRequestDto.getToUserNickName();
         User fromUser = (User) authentication.getPrincipal();
         User toUser = userRepository.findByNickName(toUserNickName)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid nickname: " + toUserNickName));
+            .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invalid nickname: " + toUserNickName));
 
         Friendship friendship = friendshipRepository.findByFromUserAndToUser(fromUser, toUser)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
+            .orElseThrow(() -> new CustomWrongArgumentException(null, "Invalid friendship"));
         friendship.setFriendStatus(friendshipRequestDto.getFriendStatus());
         friendshipRepository.save(friendship);
     }
 
-    public void deleteFriendship(Authentication authentication, String friendshipId) throws IllegalArgumentException {
+    public void deleteFriendship(Authentication authentication, String friendshipId)
+        throws CustomWrongArgumentException {
         User fromUser = (User) authentication.getPrincipal();
         Friendship friendship = friendshipRepository.findByIdAndFromUser(friendshipId, fromUser)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid friendship"));
+            .orElseThrow(() -> new CustomWrongArgumentException(null, "Invalid friendship"));
         friendshipRepository.delete(friendship);
     }
 }

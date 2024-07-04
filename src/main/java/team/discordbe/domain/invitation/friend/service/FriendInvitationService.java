@@ -17,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.friendship.model.Friendship;
 import team.discordbe.domain.friendship.repository.FriendshipRepository;
@@ -26,6 +25,7 @@ import team.discordbe.domain.invitation.friend.model.FriendInvitation;
 import team.discordbe.domain.invitation.friend.repository.FriendInvitationRepository;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @Service
 @Transactional
@@ -37,10 +37,11 @@ public class FriendInvitationService {
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
 
-    public void invite(Authentication authentication, String toUserNickName) {
+    public void invite(Authentication authentication, String toUserNickName)
+        throws CustomEntityNotFoundException {
         User fromUser = (User) authentication.getPrincipal();
         User toUser = userRepository.findByNickName(toUserNickName)
-            .orElseThrow(() -> new EntityNotFoundException("Invalid nickname: " + toUserNickName));
+            .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invalid nickname: " + toUserNickName));
 
         Optional<FriendInvitation> friendInvitation = friendInvitationRepository
             .findByFromUserAndToUser(fromUser, toUser);
@@ -91,10 +92,11 @@ public class FriendInvitationService {
         return friendInvitationsDtos;
     }
 
-    public void accept(Authentication authentication, String invitationId) {
+    public void accept(Authentication authentication, String invitationId)
+        throws CustomEntityNotFoundException {
         User invitee = (User) authentication.getPrincipal();
         FriendInvitation friendInvitation = friendInvitationRepository.findByIdAndToUser(invitationId, invitee)
-            .orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+            .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invitation not found"));
         User inviter = friendInvitation.getFromUser();
 
         Friendship inviteeFriendship = friendshipRepository.findByFromUserAndToUser(inviter, invitee)
@@ -109,10 +111,11 @@ public class FriendInvitationService {
         friendInvitationRepository.delete(friendInvitation);
     }
 
-    public void cancel(Authentication authentication, String invitationId) {
+    public void cancel(Authentication authentication, String invitationId)
+        throws CustomEntityNotFoundException {
         User inviter = (User) authentication.getPrincipal();
         FriendInvitation friendInvitation = friendInvitationRepository.findByIdAndToUser(invitationId, inviter)
-            .orElseThrow(() -> new EntityNotFoundException("Invitation not found"));
+            .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invitation not found"));
         friendInvitationRepository.delete(friendInvitation);
     }
 }

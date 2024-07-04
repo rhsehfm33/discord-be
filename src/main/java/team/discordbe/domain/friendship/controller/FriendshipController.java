@@ -18,6 +18,8 @@ import team.discordbe.domain.friendship.constant.FriendStatus;
 import team.discordbe.domain.friendship.dto.FriendshipRequestDto;
 import team.discordbe.domain.friendship.dto.FriendshipResponseDto;
 import team.discordbe.domain.friendship.service.FriendshipService;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
+import team.discordbe.global.exception.CustomWrongArgumentException;
 
 @RestController
 @RequestMapping("/friendships")
@@ -37,17 +39,21 @@ public class FriendshipController {
     @GetMapping("/status")
     public FriendStatus getFriendshipStatus(
         Authentication authentication, @RequestParam String nickName
-    ) {
+    ) throws CustomWrongArgumentException {
         return friendshipService.getFriendshipStatus(authentication, nickName);
     }
 
     @PutMapping
-    public void updateFriendship(Authentication authentication, FriendshipRequestDto friendshipRequestDto) {
+    public void updateFriendship(
+        Authentication authentication, FriendshipRequestDto friendshipRequestDto
+    ) throws CustomWrongArgumentException, CustomEntityNotFoundException {
         friendshipService.updateFriendship(authentication, friendshipRequestDto);
     }
 
     @DeleteMapping
-    public void deleteFriendship(Authentication authentication, @RequestParam String nickName) {
+    public void deleteFriendship(
+        Authentication authentication, @RequestParam String nickName
+    ) throws CustomWrongArgumentException {
         friendshipService.deleteFriendship(authentication, nickName);
     }
 }

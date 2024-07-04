@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.services.UserService;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController
 @RequestMapping("/users")
@@ -27,7 +28,9 @@ public class UserController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") String id, @RequestBody UserRequestDto dto) {
+    public ResponseEntity<UserResponseDto> updateUser(
+        @PathVariable("id") String id, @RequestBody UserRequestDto dto
+    ) throws CustomEntityNotFoundException {
         UserResponseDto updatedUser = userService.updateUser(id, dto);
         return ResponseEntity.ok().body(updatedUser);
     }

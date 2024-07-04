@@ -12,7 +12,18 @@ public class CustomErrorAttributes extends DefaultErrorAttributes {
     @Override
     public Map<String, Object> getErrorAttributes(WebRequest webRequest, ErrorAttributeOptions options) {
         options = options.excluding(ErrorAttributeOptions.Include.STACK_TRACE);
-        return super.getErrorAttributes(webRequest, options);
+
+        Map<String, Object> errorAttributes = super.getErrorAttributes(webRequest, options);
+        errorAttributes.remove("status");
+        errorAttributes.remove("error");
+
+        Throwable error = getError(webRequest);
+        if (error instanceof CustomException customException) {
+            errorAttributes.put("errorCode", customException.getErrorCode());
+            errorAttributes.put("message", customException.getMessage());
+        }
+
+        return errorAttributes;
     }
 
     @Override

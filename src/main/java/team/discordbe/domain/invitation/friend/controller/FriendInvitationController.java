@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.invitation.friend.dto.FriendInvitationRequestDto;
 import team.discordbe.domain.invitation.friend.dto.FriendInvitationResponseDto;
 import team.discordbe.domain.invitation.friend.service.FriendInvitationService;
+import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController
 @RequestMapping("/friend-invitations")
@@ -27,7 +28,8 @@ public class FriendInvitationController {
      private final FriendInvitationService friendInvitationService;
 
      @PostMapping
-     void invite(Authentication authentication, FriendInvitationRequestDto friendInvitationRequestDto) {
+     void invite(Authentication authentication, FriendInvitationRequestDto friendInvitationRequestDto)
+         throws CustomEntityNotFoundException {
          friendInvitationService.invite(authentication, friendInvitationRequestDto.getNickName());
      }
 
@@ -39,12 +41,14 @@ public class FriendInvitationController {
     }
 
     @PutMapping("/{invitationId}")
-    public void accept(Authentication authentication, @PathVariable String invitationId) {
+    public void accept(Authentication authentication, @PathVariable String invitationId) throws
+        CustomEntityNotFoundException {
          friendInvitationService.accept(authentication, invitationId);
     }
 
     @DeleteMapping("/{invitationId}")
-    public void cancel(Authentication authentication, @PathVariable String invitationId) {
+    public void cancel(Authentication authentication, @PathVariable String invitationId)
+        throws CustomEntityNotFoundException {
         friendInvitationService.cancel(authentication, invitationId);
     }
 }
