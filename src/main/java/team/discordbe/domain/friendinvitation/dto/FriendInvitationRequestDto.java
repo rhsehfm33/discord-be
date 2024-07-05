@@ -1,4 +1,4 @@
-package team.discordbe.domain.invitation.friend.dto;
+package team.discordbe.domain.friendinvitation.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

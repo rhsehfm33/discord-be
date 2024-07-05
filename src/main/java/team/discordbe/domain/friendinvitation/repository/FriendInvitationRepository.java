@@ -1,10 +1,10 @@
-package team.discordbe.domain.invitation.friend.repository;
+package team.discordbe.domain.friendinvitation.repository;
 
 import java.util.Optional;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import team.discordbe.domain.invitation.friend.model.FriendInvitation;
+import team.discordbe.domain.friendinvitation.model.FriendInvitation;
 import team.discordbe.domain.user.model.User;
 
 public interface FriendInvitationRepository extends MongoRepository<FriendInvitation, String> {

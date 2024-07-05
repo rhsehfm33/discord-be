@@ -1,4 +1,4 @@
-package team.discordbe.domain.invitation.friend.model;
+package team.discordbe.domain.friendinvitation.model;
 
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
