@@ -20,7 +20,7 @@ public class CustomErrorAttributes extends DefaultErrorAttributes {
         Throwable error = getError(webRequest);
         if (error instanceof CustomException customException) {
             errorAttributes.put("errorCode", customException.getErrorCode());
-            errorAttributes.put("message", customException.getMessage());
+            errorAttributes.put("errorMessage", customException.getMessage());
         }
 
         return errorAttributes;
