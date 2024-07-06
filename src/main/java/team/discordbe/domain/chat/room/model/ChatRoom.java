@@ -4,7 +4,6 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import team.discordbe.domain.chat.room.constant.ChatRoomType;
@@ -13,7 +12,6 @@ import team.discordbe.domain.user.model.User;
 
 @Getter
 @Document(collection = "chat_rooms")
-@AllArgsConstructor
 @NoArgsConstructor
 public class ChatRoom {
     @Id
