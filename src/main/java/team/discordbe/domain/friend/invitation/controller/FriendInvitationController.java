@@ -21,7 +21,7 @@ import team.discordbe.domain.friend.invitation.service.FriendInvitationService;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController
-@RequestMapping("/friend-invitations")
+@RequestMapping("/friends/invitations")
 @RequiredArgsConstructor
 @ResponseStatus(HttpStatus.OK)
 public class FriendInvitationController {

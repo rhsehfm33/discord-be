@@ -22,7 +22,7 @@ import team.discordbe.global.exception.CustomEntityNotFoundException;
 import team.discordbe.global.exception.CustomIllegalArgumentException;
 
 @RestController
-@RequestMapping("/friendships")
+@RequestMapping("/friends/friendships")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
 @ResponseStatus(HttpStatus.OK)
