@@ -114,7 +114,7 @@ public class FriendInvitationService {
     public void cancel(Authentication authentication, String invitationId)
         throws CustomEntityNotFoundException {
         User inviter = (User) authentication.getPrincipal();
-        FriendInvitation friendInvitation = friendInvitationRepository.findByIdAndToUser(invitationId, inviter)
+        FriendInvitation friendInvitation = friendInvitationRepository.findByIdAndFromUser(invitationId, inviter)
             .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invitation not found"));
         friendInvitationRepository.delete(friendInvitation);
     }
