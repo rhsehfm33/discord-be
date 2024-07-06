@@ -1,4 +1,4 @@
-package team.discordbe.domain.friendinvitation.controller;
+package team.discordbe.domain.friend.invitation.controller;
 
 import java.util.List;
 
@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import team.discordbe.domain.friendinvitation.dto.FriendInvitationRequestDto;
-import team.discordbe.domain.friendinvitation.dto.FriendInvitationResponseDto;
-import team.discordbe.domain.friendinvitation.service.FriendInvitationService;
+import team.discordbe.domain.friend.invitation.dto.FriendInvitationRequestDto;
+import team.discordbe.domain.friend.invitation.dto.FriendInvitationResponseDto;
+import team.discordbe.domain.friend.invitation.service.FriendInvitationService;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController

@@ -1,8 +1,8 @@
-package team.discordbe.domain.friendship.dto;
+package team.discordbe.domain.friend.friendship.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import team.discordbe.domain.friendship.constant.FriendStatus;
+import team.discordbe.domain.friend.friendship.constant.FriendStatus;
 
 @Getter
 @AllArgsConstructor

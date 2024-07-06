@@ -1,4 +1,4 @@
-package team.discordbe.domain.friendship.dto;
+package team.discordbe.domain.friend.friendship.dto;
 
 import lombok.Getter;
 import team.discordbe.domain.user.dto.SimpleUserResponseDto;

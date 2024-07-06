@@ -1,4 +1,4 @@
-package team.discordbe.domain.friendship.service;
+package team.discordbe.domain.friend.friendship.service;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,11 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
-import team.discordbe.domain.friendship.constant.FriendStatus;
-import team.discordbe.domain.friendship.dto.FriendshipRequestDto;
-import team.discordbe.domain.friendship.dto.FriendshipResponseDto;
-import team.discordbe.domain.friendship.model.Friendship;
-import team.discordbe.domain.friendship.repository.FriendshipRepository;
+import team.discordbe.domain.friend.friendship.constant.FriendStatus;
+import team.discordbe.domain.friend.friendship.dto.FriendshipRequestDto;
+import team.discordbe.domain.friend.friendship.dto.FriendshipResponseDto;
+import team.discordbe.domain.friend.friendship.model.Friendship;
+import team.discordbe.domain.friend.friendship.repository.FriendshipRepository;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
 import team.discordbe.global.exception.CustomEntityNotFoundException;

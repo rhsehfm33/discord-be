@@ -1,4 +1,4 @@
-package team.discordbe.domain.friendship.controller;
+package team.discordbe.domain.friend.friendship.controller;
 
 import java.util.List;
 
@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import team.discordbe.domain.friendship.constant.FriendStatus;
-import team.discordbe.domain.friendship.dto.FriendshipRequestDto;
-import team.discordbe.domain.friendship.dto.FriendshipResponseDto;
-import team.discordbe.domain.friendship.service.FriendshipService;
+import team.discordbe.domain.friend.friendship.constant.FriendStatus;
+import team.discordbe.domain.friend.friendship.dto.FriendshipRequestDto;
+import team.discordbe.domain.friend.friendship.dto.FriendshipResponseDto;
+import team.discordbe.domain.friend.friendship.service.FriendshipService;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 import team.discordbe.global.exception.CustomIllegalArgumentException;
 

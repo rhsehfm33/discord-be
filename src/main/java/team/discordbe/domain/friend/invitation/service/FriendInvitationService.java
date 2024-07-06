@@ -1,6 +1,6 @@
-package team.discordbe.domain.friendinvitation.service;
+package team.discordbe.domain.friend.invitation.service;
 
-import static team.discordbe.domain.friendship.constant.FriendStatus.*;
+import static team.discordbe.domain.friend.friendship.constant.FriendStatus.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,11 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
-import team.discordbe.domain.friendinvitation.dto.FriendInvitationResponseDto;
-import team.discordbe.domain.friendinvitation.model.FriendInvitation;
-import team.discordbe.domain.friendinvitation.repository.FriendInvitationRepository;
-import team.discordbe.domain.friendship.model.Friendship;
-import team.discordbe.domain.friendship.repository.FriendshipRepository;
+import team.discordbe.domain.friend.friendship.model.Friendship;
+import team.discordbe.domain.friend.friendship.repository.FriendshipRepository;
+import team.discordbe.domain.friend.invitation.dto.FriendInvitationResponseDto;
+import team.discordbe.domain.friend.invitation.model.FriendInvitation;
+import team.discordbe.domain.friend.invitation.repository.FriendInvitationRepository;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
