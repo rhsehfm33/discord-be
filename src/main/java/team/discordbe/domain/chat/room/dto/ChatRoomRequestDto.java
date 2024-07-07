@@ -1,12 +1,13 @@
 package team.discordbe.domain.chat.room.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import team.discordbe.domain.chat.room.constant.ChatRoomType;
 
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor
 public class ChatRoomRequestDto {
+    private String id;
     private String title;
     private ChatRoomType type;
 }

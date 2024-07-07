@@ -46,8 +46,7 @@ public class FriendshipService {
         AggregationResults<Friendship> friendships = mongoTemplate
             .aggregate(aggregation, "friendships", Friendship.class);
 
-        List<FriendshipResponseDto> friendshipResponseDtos = friendships.getMappedResults()
-            .stream()
+        List<FriendshipResponseDto> friendshipResponseDtos = friendships.getMappedResults().stream()
             .map(friendship -> new FriendshipResponseDto(friendship.getId(), friendship.getToUser()))
             .toList();
         return friendshipResponseDtos;
