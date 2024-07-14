@@ -2,6 +2,8 @@ package team.discordbe.domain.user.services;
 
 import java.util.Collections;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -35,6 +37,11 @@ public class UserService implements UserDetailsService {
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
         User user = userRepository.save(new User(dto));
         return new UserResponseDto(user);
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public UserResponseDto getMyUserInfo(Authentication authentication) {
+        return new UserResponseDto((User) authentication.getPrincipal());
     }
 
     public UserResponseDto updateUser(String id, UserRequestDto dto)
