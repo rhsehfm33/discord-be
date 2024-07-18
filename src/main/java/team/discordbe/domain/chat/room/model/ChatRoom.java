@@ -21,6 +21,9 @@ public class ChatRoom {
     @Setter
     private String title;
 
+    @Setter
+    private String image;
+
     private ChatRoomType type;
 
     @DBRef
@@ -29,6 +32,7 @@ public class ChatRoom {
     public ChatRoom(User owner, ChatRoomRequestDto chatRoomRequestDto) {
         this.owner = owner;
         this.title = chatRoomRequestDto.getTitle();
+        this.image = chatRoomRequestDto.getImage();
         this.type = chatRoomRequestDto.getType();
     }
 }

@@ -1,7 +1,9 @@
 package team.discordbe.domain.chat.room.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -34,7 +36,19 @@ public class ChatRoomService {
     private final ChatSubscriptRepository chatSubscriptRepository;
     private final MongoTemplate mongoTemplate;
 
+    private Random random = new Random();
+    List<String> dummyImages = new ArrayList<>(List.of(
+        "https://i.pinimg.com/originals/a5/98/73/a598732adbce5c5f5c276474a5525330.jpg",
+        "https://i.pinimg.com/474x/25/0f/2d/250f2d083b89d3b6585f67729602daaf.jpg",
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3Vd_kqZn53ok20t0tVuAukGAHOzVLWvNgKw&s",
+        "https://i.pinimg.com/564x/31/f1/23/31f1231af69beb6617062dbf3373131c.jpg"
+    ));
+
     public ChatRoomResponseDto create(Authentication authentication, ChatRoomRequestDto chatRoomRequestDto) {
+        // TODO: Apply user registered profile image
+        if (chatRoomRequestDto.getImage() == null) {
+            chatRoomRequestDto.setImage(dummyImages.get(random.nextInt(dummyImages.size())));
+        }
         User owner = (User) authentication.getPrincipal();
         ChatRoom newChatRoom = new ChatRoom(owner, chatRoomRequestDto);
         newChatRoom = chatRoomRepository.save(newChatRoom);

@@ -8,11 +8,13 @@ import team.discordbe.domain.chat.room.model.ChatRoom;
 public class ChatRoomResponseDto {
     private final String id;
     private final String title;
+    private final String image;
     private final ChatRoomType type;
 
     public ChatRoomResponseDto(ChatRoom room) {
         this.id = room.getId();
         this.title = room.getTitle();
+        this.image = room.getImage();
         this.type = room.getType();
     }
 }
