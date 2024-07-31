@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import team.discordbe.domain.chat.channel.text.model.TextChannel;
+import team.discordbe.domain.chat.channel.text.repository.TextChannelRepository;
 import team.discordbe.domain.chat.room.dto.ChatRoomRequestDto;
 import team.discordbe.domain.chat.room.dto.ChatRoomResponseDto;
 import team.discordbe.domain.chat.room.model.ChatRoom;
@@ -34,9 +36,10 @@ import team.discordbe.global.exception.CustomEntityNotFoundException;
 public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatSubscriptRepository chatSubscriptRepository;
+    private final TextChannelRepository textChannelRepository;
     private final MongoTemplate mongoTemplate;
 
-    private Random random = new Random();
+    private final Random random = new Random();
     List<String> dummyImages = new ArrayList<>(List.of(
         "https://i.pinimg.com/originals/a5/98/73/a598732adbce5c5f5c276474a5525330.jpg",
         "https://i.pinimg.com/474x/25/0f/2d/250f2d083b89d3b6585f67729602daaf.jpg",
@@ -53,6 +56,8 @@ public class ChatRoomService {
         ChatRoom newChatRoom = new ChatRoom(owner, chatRoomRequestDto);
         newChatRoom = chatRoomRepository.save(newChatRoom);
         chatSubscriptRepository.save(new ChatSubscription(owner, newChatRoom));
+        TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);
+        textChannel = textChannelRepository.save(textChannel);
         return new ChatRoomResponseDto(newChatRoom);
     }
 
