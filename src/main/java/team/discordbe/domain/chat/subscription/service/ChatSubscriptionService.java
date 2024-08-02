@@ -13,6 +13,7 @@ import team.discordbe.domain.chat.subscription.model.ChatSubscription;
 import team.discordbe.domain.chat.subscription.repository.ChatSubscriptRepository;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
+import team.discordbe.global.exception.CustomResourceConflictException;
 
 @Service
 @RequiredArgsConstructor
@@ -22,11 +23,14 @@ public class ChatSubscriptionService {
     private final ChatRoomRepository chatRoomRepository;
 
     public ChatRoomResponseDto subscribe(Authentication authentication, String chatRoomId)
-        throws CustomEntityNotFoundException {
+        throws CustomEntityNotFoundException, CustomResourceConflictException {
         User user = (User) authentication.getPrincipal();
         ChatRoom chatRoom = chatRoomRepository.findByIdAndType(chatRoomId, ChatRoomType.COMMUNITY).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room not found")
         );
+        if (chatSubscriptRepository.findByUserAndChatRoom(user, chatRoom).isPresent()) {
+            throw new CustomResourceConflictException("CONFLICT", "Chat subscription already exists");
+        }
         ChatSubscription chatSubscription = new ChatSubscription(user, chatRoom);
         chatSubscriptRepository.save(chatSubscription);
 

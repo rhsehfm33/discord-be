@@ -11,6 +11,7 @@ public class ExceptionHttpStatusMapper {
     static {
         EXCEPTION_STATUS_MAP.put(CustomEntityNotFoundException.class, HttpStatus.NOT_FOUND);
         EXCEPTION_STATUS_MAP.put(CustomIllegalArgumentException.class, HttpStatus.BAD_REQUEST);
+        EXCEPTION_STATUS_MAP.put(CustomResourceConflictException.class, HttpStatus.CONFLICT);
         // Add more exception to status mappings as needed
     }
 

@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.chat.room.dto.ChatRoomResponseDto;
 import team.discordbe.domain.chat.subscription.service.ChatSubscriptionService;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
+import team.discordbe.global.exception.CustomResourceConflictException;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class ChatSubscriptionController {
     @PostMapping
     public ChatRoomResponseDto subscribe(
         Authentication authentication, @RequestParam("chatRoomId") String chatRoomId
-    ) throws CustomEntityNotFoundException {
+    ) throws CustomEntityNotFoundException, CustomResourceConflictException {
         return chatSubscriptionService.subscribe(authentication, chatRoomId);
     }
 

@@ -39,9 +39,9 @@ public class ChatRoomController {
     }
 
     @GetMapping("/{chatRoomId}")
-    public ChatRoomResponseDto get(Authentication authentication, @PathVariable String chatRoomId)
+    public ChatRoomResponseDto get(@PathVariable String chatRoomId)
         throws CustomEntityNotFoundException {
-        return chatRoomService.get(authentication, chatRoomId);
+        return chatRoomService.get(chatRoomId);
     }
 
     @PutMapping

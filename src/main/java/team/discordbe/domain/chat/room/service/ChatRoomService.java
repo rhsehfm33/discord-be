@@ -81,10 +81,9 @@ public class ChatRoomService {
         return chatRoomResponseDtos;
     }
 
-    public ChatRoomResponseDto get(Authentication authentication, String chatRoomId)
+    public ChatRoomResponseDto get(String chatRoomId)
         throws CustomEntityNotFoundException {
-        User owner = (User) authentication.getPrincipal();
-        ChatRoom chatRoom = chatRoomRepository.findByIdAndOwner(chatRoomId, owner).orElseThrow(
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under conditions")
         );
         return new ChatRoomResponseDto(chatRoom);
