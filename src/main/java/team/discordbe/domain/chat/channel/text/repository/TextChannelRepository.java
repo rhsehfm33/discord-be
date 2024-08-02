@@ -9,7 +9,7 @@ import team.discordbe.domain.chat.room.model.ChatRoom;
 import team.discordbe.domain.user.model.User;
 
 public interface TextChannelRepository extends MongoRepository<TextChannel, String> {
-    void deleteByChatRoom(ChatRoom chatRoom);
+    void deleteAllByChatRoom(ChatRoom chatRoom);
 
     void deleteByOwner(User owner);
 

@@ -38,6 +38,12 @@ public class ChatRoomController {
         return chatRoomService.getAll(authentication);
     }
 
+    @GetMapping("/{chatRoomId}")
+    public ChatRoomResponseDto get(Authentication authentication, @PathVariable String chatRoomId)
+        throws CustomEntityNotFoundException {
+        return chatRoomService.get(authentication, chatRoomId);
+    }
+
     @PutMapping
     public ChatRoomResponseDto update(
         Authentication authentication, @RequestBody ChatRoomRequestDto chatRoomRequestDto

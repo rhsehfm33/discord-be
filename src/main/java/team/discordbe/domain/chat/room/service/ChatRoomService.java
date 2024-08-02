@@ -81,6 +81,15 @@ public class ChatRoomService {
         return chatRoomResponseDtos;
     }
 
+    public ChatRoomResponseDto get(Authentication authentication, String chatRoomId)
+        throws CustomEntityNotFoundException {
+        User owner = (User) authentication.getPrincipal();
+        ChatRoom chatRoom = chatRoomRepository.findByIdAndOwner(chatRoomId, owner).orElseThrow(
+            () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under conditions")
+        );
+        return new ChatRoomResponseDto(chatRoom);
+    }
+
     public ChatRoomResponseDto update(Authentication authentication, ChatRoomRequestDto chatRoomRequestDto)
         throws CustomEntityNotFoundException {
         User owner = (User) authentication.getPrincipal();
@@ -97,6 +106,7 @@ public class ChatRoomService {
         Optional<ChatRoom> chatRoomOptional = chatRoomRepository.findByIdAndOwner(chatRoomId, owner);
         if (chatRoomOptional.isPresent()) {
             chatSubscriptRepository.deleteAllByChatRoom(chatRoomOptional.get());
+            textChannelRepository.deleteAllByChatRoom(chatRoomOptional.get());
             chatRoomRepository.deleteById(chatRoomId);
         } else {
             throw new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under given conditions");
