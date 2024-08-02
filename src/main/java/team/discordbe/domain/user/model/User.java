@@ -1,5 +1,7 @@
 package team.discordbe.domain.user.model;
 
+import java.util.Objects;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.persistence.Column;
@@ -40,6 +42,14 @@ public class User extends BaseEntity {
         this.email = userRequestDto.getEmail();
         this.password = userRequestDto.getPassword();
         this.imageUrl = userRequestDto.getImageUrl();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
     }
 }
 

@@ -57,15 +57,15 @@ public class ChatRoomService {
         newChatRoom = chatRoomRepository.save(newChatRoom);
         chatSubscriptRepository.save(new ChatSubscription(owner, newChatRoom));
         TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);
-        textChannel = textChannelRepository.save(textChannel);
-        return new ChatRoomResponseDto(newChatRoom);
+        textChannelRepository.save(textChannel);
+        return new ChatRoomResponseDto(newChatRoom, true);
     }
 
     public List<ChatRoomResponseDto> getAll(Authentication authentication) {
-        User owner = (User) authentication.getPrincipal();
+        User user = (User) authentication.getPrincipal();
 
         MatchOperation matchOperation = Aggregation.match(
-            Criteria.where("user.$id").is(new ObjectId(owner.getId()))
+            Criteria.where("user.$id").is(new ObjectId(user.getId()))
         );
         LookupOperation lookupOperation = Aggregation.lookup(
             "chat_subscriptions", "chatRoom.$id", "_id", "chatRoomDetails"
@@ -76,17 +76,22 @@ public class ChatRoomService {
         );
 
         List<ChatRoomResponseDto> chatRoomResponseDtos = chatSubscriptions.getMappedResults().stream()
-            .map(chatSubscription -> new ChatRoomResponseDto(chatSubscription.getChatRoom()))
+            .map(chatSubscription -> new ChatRoomResponseDto(
+                chatSubscription.getChatRoom(),
+                chatSubscription.getChatRoom().getOwner().equals(user)
+            ))
             .toList();
         return chatRoomResponseDtos;
     }
 
-    public ChatRoomResponseDto get(String chatRoomId)
+    public ChatRoomResponseDto get(Authentication authentication, String chatRoomId)
         throws CustomEntityNotFoundException {
+        User user = (User) authentication.getPrincipal();
+
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under conditions")
         );
-        return new ChatRoomResponseDto(chatRoom);
+        return new ChatRoomResponseDto(chatRoom, chatRoom.getOwner().equals(user));
     }
 
     public ChatRoomResponseDto update(Authentication authentication, ChatRoomRequestDto chatRoomRequestDto)
@@ -97,7 +102,7 @@ public class ChatRoomService {
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under conditions")
         );
         chatRoom.setTitle(chatRoomRequestDto.getTitle());
-        return new ChatRoomResponseDto(chatRoomRepository.save(chatRoom));
+        return new ChatRoomResponseDto(chatRoomRepository.save(chatRoom), true);
     }
 
     public void delete(Authentication authentication, String chatRoomId) throws CustomEntityNotFoundException {

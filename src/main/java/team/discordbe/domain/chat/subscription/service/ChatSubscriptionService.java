@@ -34,7 +34,7 @@ public class ChatSubscriptionService {
         ChatSubscription chatSubscription = new ChatSubscription(user, chatRoom);
         chatSubscriptRepository.save(chatSubscription);
 
-        return new ChatRoomResponseDto(chatRoom);
+        return new ChatRoomResponseDto(chatRoom, chatRoom.getOwner().equals(user));
     }
 
     public void unsubscribe(Authentication authentication, String chatRoomId)
