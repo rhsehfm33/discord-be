@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,17 +13,20 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import team.discordbe.domain.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import team.discordbe.global.handler.CustomAuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+    private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -43,7 +47,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource()))
             .headers(headersConfigurer -> headersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
@@ -52,10 +56,13 @@ public class SecurityConfig {
                 .anyRequest().permitAll())
             .formLogin(formLoginConfigurer -> formLoginConfigurer
                 .loginPage("/login")
-                .successHandler(new CustomAuthenticationSuccessHandler(userRepository))
+                .successHandler(authenticationSuccessHandler)
                 .usernameParameter("email")
                 .permitAll())
+            .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .logout(logoutConfigurer -> logoutConfigurer.logoutUrl("/logout"));
+
         return http.build();
     }
 }
