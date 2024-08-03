@@ -22,7 +22,7 @@ import team.discordbe.global.exception.CustomEntityNotFoundException;
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@RequestMapping("/chats/rooms")
+@RequestMapping("/chat-rooms")
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
 

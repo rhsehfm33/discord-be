@@ -2,10 +2,14 @@ package team.discordbe.domain.user.dto;
 
 import java.time.LocalDateTime;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import team.discordbe.domain.user.model.User;
 
 @Getter
+@Builder
+@AllArgsConstructor
 public class UserResponseDto {
     private final String id;
     private final String email;

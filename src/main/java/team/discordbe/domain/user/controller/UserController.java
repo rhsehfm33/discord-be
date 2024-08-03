@@ -1,5 +1,7 @@
 package team.discordbe.domain.user.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -19,24 +21,31 @@ import team.discordbe.domain.user.services.UserService;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping
+    @PostMapping("/users")
     public ResponseEntity<UserResponseDto> createUser(@RequestBody UserRequestDto dto) {
         UserResponseDto createdUser = userService.createdUser(dto);
         return ResponseEntity.ok().body(createdUser);
     }
 
-    @GetMapping("/mine")
+    @GetMapping("/users/mine")
     @PreAuthorize("isAuthenticated()")
     public UserResponseDto getMyUserInfo(Authentication authentication) {
         return userService.getMyUserInfo(authentication);
     }
 
-    @PatchMapping("/{id}")
+    @GetMapping("/chat-rooms/{chatRoomId}/users")
+    public List<UserResponseDto> getParticipants(
+        Authentication authentication, @PathVariable String chatRoomId
+    ) {
+        return userService.getParticipants(authentication, chatRoomId);
+    }
+
+    @PatchMapping("/users/{id}")
     public ResponseEntity<UserResponseDto> updateUser(
         @PathVariable("id") String id, @RequestBody UserRequestDto dto
     ) throws CustomEntityNotFoundException {
@@ -44,7 +53,7 @@ public class UserController {
         return ResponseEntity.ok().body(updatedUser);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/users/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable("id") String id) {
         userService.deleteUser(id);
         return ResponseEntity.ok().body("삭제 완료");

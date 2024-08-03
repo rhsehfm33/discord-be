@@ -3,9 +3,8 @@ package team.discordbe.domain.chat.subscription.controller;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
@@ -17,20 +16,19 @@ import team.discordbe.global.exception.CustomResourceConflictException;
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@RequestMapping("/chats/subscriptions")
 public class ChatSubscriptionController {
     private final ChatSubscriptionService chatSubscriptionService;
 
-    @PostMapping
+    @PostMapping("/chat-rooms/{chatRoomId}/subscriptions")
     public ChatRoomResponseDto subscribe(
-        Authentication authentication, @RequestParam("chatRoomId") String chatRoomId
+        Authentication authentication, @PathVariable String chatRoomId
     ) throws CustomEntityNotFoundException, CustomResourceConflictException {
         return chatSubscriptionService.subscribe(authentication, chatRoomId);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/chat-rooms/{chatRoomId}/subscriptions")
     public void unsubscribe(
-        Authentication authentication, @RequestParam("chatRoomId") String chatRoomId
+        Authentication authentication, @PathVariable String chatRoomId
     ) throws CustomEntityNotFoundException {
         chatSubscriptionService.unsubscribe(authentication, chatRoomId);
     }
