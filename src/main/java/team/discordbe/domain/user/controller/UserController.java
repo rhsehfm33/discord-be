@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.services.UserService;
+import team.discordbe.global.exception.CustomAuthorizationError;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @RestController
@@ -41,7 +42,7 @@ public class UserController {
     @GetMapping("/chat-rooms/{chatRoomId}/users")
     public List<UserResponseDto> getParticipants(
         Authentication authentication, @PathVariable String chatRoomId
-    ) {
+    ) throws CustomAuthorizationError, CustomEntityNotFoundException {
         return userService.getParticipants(authentication, chatRoomId);
     }
 

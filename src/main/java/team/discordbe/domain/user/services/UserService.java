@@ -20,11 +20,15 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import team.discordbe.domain.chat.room.model.ChatRoom;
+import team.discordbe.domain.chat.room.repository.ChatRoomRepository;
 import team.discordbe.domain.chat.subscription.model.ChatSubscription;
+import team.discordbe.domain.chat.subscription.repository.ChatSubscriptRepository;
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.domain.user.dto.UserResponseDto;
 import team.discordbe.domain.user.model.User;
 import team.discordbe.domain.user.repository.UserRepository;
+import team.discordbe.global.exception.CustomAuthorizationError;
 import team.discordbe.global.exception.CustomEntityNotFoundException;
 
 @Service
@@ -33,6 +37,8 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final MongoTemplate mongoTemplate;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatSubscriptRepository chatSubscriptRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -55,8 +61,15 @@ public class UserService implements UserDetailsService {
     }
 
     @PreAuthorize("isAuthenticated()")
-    public List<UserResponseDto> getParticipants(Authentication authentication, String chatRoomId) {
+    public List<UserResponseDto> getParticipants(Authentication authentication, String chatRoomId) throws
+        CustomAuthorizationError, CustomEntityNotFoundException {
         User user = (User) authentication.getPrincipal();
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow(
+            () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room not found")
+        );
+        if (chatSubscriptRepository.findByUserAndChatRoom(user, chatRoom).isEmpty()) {
+            throw new CustomAuthorizationError("NO_AUTHORITY", "You're not subscribing the chat room");
+        }
 
         MatchOperation matchOperation = Aggregation.match(
             Criteria.where("chatRoom.$id").is(new ObjectId(chatRoomId))
