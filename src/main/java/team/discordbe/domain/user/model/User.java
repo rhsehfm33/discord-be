@@ -2,6 +2,7 @@ package team.discordbe.domain.user.model;
 
 import java.util.Objects;
 
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import jakarta.persistence.Column;
@@ -22,11 +23,11 @@ public class User extends BaseEntity {
     private String id;
 
     @Setter
-    @Column(name = "nick_name", unique = true, nullable = false, length = 50)
+    @Indexed(unique = true)
     private String nickName;
 
     @Setter
-    @Column(unique = true, nullable = false)
+    @Indexed(unique = true)
     private String email;
 
     @Setter
