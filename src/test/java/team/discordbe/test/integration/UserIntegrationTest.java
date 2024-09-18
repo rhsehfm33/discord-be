@@ -3,17 +3,14 @@ package team.discordbe.test.integration;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.transaction.annotation.Transactional;
 
 import team.discordbe.domain.user.dto.UserRequestDto;
 import team.discordbe.domain.user.services.UserService;
+import team.discordbe.test.BaseIntegrationTest;
 import team.discordbe.util.InstanceSetter;
 
-@SpringBootTest
-@Transactional
-public class UserIntegrationTest {
+public class UserIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private UserService userService;

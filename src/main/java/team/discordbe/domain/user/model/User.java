@@ -4,8 +4,8 @@ import java.util.Objects;
 
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,11 +31,11 @@ public class User extends BaseEntity {
     private String email;
 
     @Setter
-    @Column(name = "password")
+    @Field("password")
     private String password;
 
     @Setter
-    @Column(name = "image_url")
+    @Field("image_url")
     private String imageUrl;
 
     public User(UserRequestDto userRequestDto) {
