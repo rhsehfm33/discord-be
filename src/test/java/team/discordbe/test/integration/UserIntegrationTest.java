@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 
-import team.discordbe.domain.user.dto.UserRequestDto;
-import team.discordbe.domain.user.dto.UserResponseDto;
-import team.discordbe.domain.user.services.UserService;
+import team.discordbe.domain.user.UserService;
+import team.discordbe.interfaces.user.UserRequest;
+import team.discordbe.interfaces.user.UserResponse;
 import team.discordbe.test.BaseIntegrationTest;
 import team.discordbe.util.InstanceSetter;
 
@@ -26,13 +26,13 @@ public class UserIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void testUserDuplication() throws NoSuchFieldException, IllegalAccessException {
-        UserRequestDto userRequestDto = new UserRequestDto();
-        InstanceSetter.setField(userRequestDto, "email", "test_user@gmail.com");
-        InstanceSetter.setField(userRequestDto, "nickName", "test_user");
-        InstanceSetter.setField(userRequestDto, "password", "asdqwe12#");
-        userService.createdUser(userRequestDto);
+        UserRequest userRequest = new UserRequest();
+        InstanceSetter.setField(userRequest, "email", "test_user@gmail.com");
+        InstanceSetter.setField(userRequest, "nickName", "test_user");
+        InstanceSetter.setField(userRequest, "password", "asdqwe12#");
+        userService.createdUser(userRequest);
         Assertions.assertThrows(DuplicateKeyException.class, () -> {
-            userService.createdUser(userRequestDto);
+            userService.createdUser(userRequest);
         });
     }
 
@@ -43,19 +43,19 @@ public class UserIntegrationTest extends BaseIntegrationTest {
         int numberOfThreads = 3;
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 
-        List<Callable<UserResponseDto>> tasks = new ArrayList<>();
+        List<Callable<UserResponse>> tasks = new ArrayList<>();
         for (int i = 0; i < numberOfThreads; ++i) {
-            UserRequestDto userRequestDto = new UserRequestDto();
-            InstanceSetter.setField(userRequestDto, "email", "test_user@gmail.com");
-            InstanceSetter.setField(userRequestDto, "nickName", "test_user");
-            InstanceSetter.setField(userRequestDto, "password", "asdqwe12#");
-            tasks.add(() -> userService.createdUser(userRequestDto));
+            UserRequest userRequest = new UserRequest();
+            InstanceSetter.setField(userRequest, "email", "test_user@gmail.com");
+            InstanceSetter.setField(userRequest, "nickName", "test_user");
+            InstanceSetter.setField(userRequest, "password", "asdqwe12#");
+            tasks.add(() -> userService.createdUser(userRequest));
         }
 
         Assertions.assertThrows(ExecutionException.class, () -> {
-            List<Future<UserResponseDto>> results = executorService.invokeAll(tasks);
+            List<Future<UserResponse>> results = executorService.invokeAll(tasks);
 
-            for (Future<UserResponseDto> result : results) {
+            for (Future<UserResponse> result : results) {
                 try {
                     result.get();
                 } catch (ExecutionException e) {
