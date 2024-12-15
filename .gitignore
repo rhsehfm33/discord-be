@@ -37,4 +37,6 @@ out/
 .vscode/
 
 ### Test ###
-/data
+/*/data/
+
+**/TODO.txt

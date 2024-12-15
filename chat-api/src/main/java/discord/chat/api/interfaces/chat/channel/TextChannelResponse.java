@@ -1,0 +1,19 @@
+package discord.chat.api.interfaces.chat.channel;
+
+import discord.chat.api.infrastructure.chat.channel.TextChannel;
+import lombok.Getter;
+
+@Getter
+public class TextChannelResponse {
+    private final String id;
+    private final String title;
+    private final String ownerId;
+    private final String chatRoomId;
+
+    public TextChannelResponse(TextChannel textChannel) {
+        this.id = textChannel.getId();
+        this.title = textChannel.getTitle();
+        this.ownerId = textChannel.getOwner().getId();
+        this.chatRoomId = textChannel.getChatRoom().getId();
+    }
+}

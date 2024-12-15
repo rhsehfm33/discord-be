@@ -1,1 +1,4 @@
-rootProject.name = 'discord-be'
+rootProject.name = 'discord'
+include 'chat-api'
+include 'chat-gateway'
+include 'chat-endpoint'
