@@ -11,17 +11,17 @@ import org.springframework.stereotype.Component;
 import discord.chat.api.infrastructure.user.User;
 import discord.chat.api.infrastructure.user.UserMongoRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Component
-public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+@RequiredArgsConstructor
+public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserMongoRepository userMongoRepository;
-
-    public CustomAuthenticationSuccessHandler(UserMongoRepository userMongoRepository) {
-        this.userMongoRepository = userMongoRepository;
-    }
+    private final JwtUtil jwtUtil;
 
     // Do nothing to prevent redirect
     @Override
@@ -37,6 +37,14 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             authentication.getAuthorities()
         );
         SecurityContextHolder.getContext().setAuthentication(newAuth);
+
+        // Set access token in a cookie
+        String token = jwtUtil.generateToken(authentication.getName());
+        Cookie accessTokenCookie = new Cookie("access_token", token);
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge(3600); // 1 hour expiration
+        response.addCookie(accessTokenCookie);
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.getWriter().print("{\"status\":\"success\"}");

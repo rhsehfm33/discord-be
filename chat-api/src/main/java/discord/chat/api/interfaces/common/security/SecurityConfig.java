@@ -2,6 +2,7 @@ package discord.chat.api.interfaces.common.security;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -10,22 +11,24 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import lombok.RequiredArgsConstructor;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
-    private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
+    @Value("${jwk-set-uri}")
+    private String jwtSetUri;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -46,21 +49,36 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+        HttpSecurity http,
+        LoginSuccessHandler loginSuccessHandler,
+        BearerTokenResolver bearerTokenResolver,
+        PostJwtAuthenticationFilter postJwtAuthenticationFilter
+    ) throws Exception {
         http
             .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource()))
-            .headers(headersConfigurer -> headersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(matcherRegistry -> matcherRegistry
+            .headers(headersConfigurer -> headersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll())
-            .formLogin(formLoginConfigurer -> formLoginConfigurer
+            .formLogin(form -> form
                 .loginPage("/login")
-                .successHandler(authenticationSuccessHandler)
+                .successHandler(loginSuccessHandler)
                 .usernameParameter("email")
                 .permitAll())
-            .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-            .logout(logoutConfigurer -> logoutConfigurer.logoutUrl("/logout"));
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .jwtAuthenticationConverter(new JwtAuthenticationConverter())
+                    .jwkSetUri(jwtSetUri))
+                .bearerTokenResolver(bearerTokenResolver) // Extract JWT from cookie
+            )
+            .addFilterAfter(postJwtAuthenticationFilter, BearerTokenAuthenticationFilter.class)
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            );
 
         return http.build();
     }

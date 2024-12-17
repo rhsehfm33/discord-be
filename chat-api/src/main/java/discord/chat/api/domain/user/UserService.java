@@ -51,6 +51,11 @@ public class UserService implements UserDetailsService {
             user.getEmail(), user.getPassword(), Collections.emptyList());
     }
 
+    public User getUserByEmail(String email) {
+        return userMongoRepository.findByEmail(email).orElseThrow(() ->
+            new EntityNotFoundException("Wrong user info"));
+    }
+
     public UserResponse createdUser(UserRequest dto) {
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
         User user = userMongoRepository.save(new User(dto));
