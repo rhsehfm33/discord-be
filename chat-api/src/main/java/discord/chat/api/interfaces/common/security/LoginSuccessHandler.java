@@ -2,6 +2,7 @@ package discord.chat.api.interfaces.common.security;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,9 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+    @Value("${domain-name}")
+    private String domainName;
 
     private final UserMongoRepository userMongoRepository;
     private final JwtUtil jwtUtil;
@@ -43,6 +47,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         Cookie accessTokenCookie = new Cookie("access_token", token);
         accessTokenCookie.setHttpOnly(true);
         accessTokenCookie.setPath("/");
+        accessTokenCookie.setDomain(domainName);
         accessTokenCookie.setMaxAge(3600); // 1 hour expiration
         response.addCookie(accessTokenCookie);
 

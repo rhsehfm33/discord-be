@@ -19,8 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import discord.chat.gateway.infrastructure.chat.room.ChatRoom;
 import discord.chat.gateway.infrastructure.chat.room.ChatRoomMongoRepository;
 import discord.chat.gateway.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
@@ -31,6 +29,8 @@ import discord.chat.gateway.interfaces.common.exception.CustomAuthorizationError
 import discord.chat.gateway.interfaces.common.exception.CustomEntityNotFoundException;
 import discord.chat.gateway.interfaces.user.UserRequest;
 import discord.chat.gateway.interfaces.user.UserResponse;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional
@@ -49,6 +49,11 @@ public class UserService implements UserDetailsService {
 
         return new org.springframework.security.core.userdetails.User(
             user.getEmail(), user.getPassword(), Collections.emptyList());
+    }
+
+    public User getUserByEmail(String email) {
+        return userMongoRepository.findByEmail(email).orElseThrow(() ->
+            new EntityNotFoundException("Wrong user info"));
     }
 
     public UserResponse createdUser(UserRequest dto) {
