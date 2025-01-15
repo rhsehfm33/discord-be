@@ -6,20 +6,24 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import lombok.RequiredArgsConstructor;
+
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic", "/queue");
+        config.setUserDestinationPrefix("/user");
+        config.enableSimpleBroker("/channel");
         config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")  // WebSocket 연결 endpoint
-                .setAllowedOrigins("http://www.msdiscord.site:5173")  // CORS 허용 설정
-                .withSockJS();
+        registry.addEndpoint("/ws")
+            .setAllowedOrigins("http://www.msdiscord.site:5173")
+            .withSockJS();
     }
 }
