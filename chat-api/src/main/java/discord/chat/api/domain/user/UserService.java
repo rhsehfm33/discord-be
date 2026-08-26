@@ -1,8 +1,17 @@
 package discord.chat.api.domain.user;
 
-import java.util.Collections;
-import java.util.List;
-
+import discord.chat.api.infrastructure.chat.room.ChatRoom;
+import discord.chat.api.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.api.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.api.infrastructure.chat.subsription.ChatSubscription;
+import discord.chat.api.infrastructure.user.User;
+import discord.chat.api.infrastructure.user.UserMongoRepository;
+import discord.chat.api.interfaces.common.exception.CustomAuthorizationError;
+import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.api.interfaces.user.UserRequest;
+import discord.chat.api.interfaces.user.UserResponse;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -19,18 +28,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import discord.chat.api.infrastructure.chat.room.ChatRoom;
-import discord.chat.api.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.api.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.api.infrastructure.chat.subsription.ChatSubscription;
-import discord.chat.api.infrastructure.user.User;
-import discord.chat.api.infrastructure.user.UserMongoRepository;
-import discord.chat.api.interfaces.common.exception.CustomAuthorizationError;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.api.interfaces.user.UserRequest;
-import discord.chat.api.interfaces.user.UserResponse;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import java.util.Collections;
+import java.util.List;
 
 @Service
 @Transactional
@@ -64,7 +63,10 @@ public class UserService implements UserDetailsService {
 
     @PreAuthorize("isAuthenticated()")
     public UserResponse getMyUserInfo(Authentication authentication) {
-        return new UserResponse((User) authentication.getPrincipal());
+        String userId = ((User) authentication.getPrincipal()).getId();
+        User user = userMongoRepository.findById(userId).orElseThrow(() ->
+            new EntityNotFoundException("Wrong user info"));
+        return new UserResponse(user);
     }
 
     @PreAuthorize("isAuthenticated()")

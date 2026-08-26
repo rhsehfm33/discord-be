@@ -43,7 +43,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         SecurityContextHolder.getContext().setAuthentication(newAuth);
 
         // Set access token in a cookie
-        String token = jwtUtil.generateToken(authentication.getName());
+        String token = jwtUtil.generateToken(user);
         Cookie accessTokenCookie = new Cookie("access_token", token);
         accessTokenCookie.setHttpOnly(true);
         accessTokenCookie.setPath("/");

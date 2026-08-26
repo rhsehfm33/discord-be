@@ -1,12 +1,5 @@
 package discord.chat.api.interfaces.common.security;
 
-import java.security.PrivateKey;
-import java.time.Instant;
-import java.util.Date;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
@@ -15,8 +8,14 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
+import discord.chat.api.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.security.PrivateKey;
+import java.time.Instant;
+import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
@@ -36,7 +35,8 @@ public class JwtUtil {
 
     private final JWKSet jwkSet;
 
-    public String generateToken(String subject) {
+    // issue an access token containing user info
+    public String generateToken(User user) {
         try {
             // Retrieve the RSA private key
             RSAKey rsaKey = (RSAKey) jwkSet.getKeyByKeyId(keyId);
@@ -45,9 +45,12 @@ public class JwtUtil {
 
             // Create JWT claims
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(subject)
+                .subject(user.getId())
                 .issuer(issuer)
                 .audience(audience)
+                .claim(JwtClaimNames.EMAIL, user.getEmail())
+                .claim(JwtClaimNames.NICK_NAME, user.getNickName())
+                .claim(JwtClaimNames.IMAGE_URL, user.getImageUrl())
                 .expirationTime(Date.from(Instant.now().plusSeconds(expirationSeconds)))
                 .issueTime(new Date())
                 .build();
