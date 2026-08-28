@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
 import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.api.interfaces.common.exception.CustomResourceConflictException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomResourceConflictException;
 import lombok.RequiredArgsConstructor;
 
 @RestController

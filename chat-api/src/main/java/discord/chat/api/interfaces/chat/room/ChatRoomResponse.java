@@ -2,8 +2,8 @@ package discord.chat.api.interfaces.chat.room;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import discord.chat.api.domain.chat.room.ChatRoomType;
-import discord.chat.api.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import lombok.Getter;
 
 @Getter

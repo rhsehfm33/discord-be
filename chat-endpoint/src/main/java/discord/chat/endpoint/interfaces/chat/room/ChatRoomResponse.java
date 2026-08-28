@@ -3,8 +3,8 @@ package discord.chat.endpoint.interfaces.chat.room;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
-import discord.chat.endpoint.domain.chat.room.ChatRoomType;
-import discord.chat.endpoint.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
 
 @Getter
 public class ChatRoomResponse {

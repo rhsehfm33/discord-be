@@ -5,15 +5,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
-import discord.chat.gateway.domain.chat.room.ChatRoomType;
-import discord.chat.gateway.infrastructure.chat.room.ChatRoom;
-import discord.chat.gateway.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.gateway.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.gateway.infrastructure.chat.subsription.ChatSubscription;
-import discord.chat.gateway.infrastructure.user.User;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
+import discord.chat.common.infrastructure.user.User;
 import discord.chat.gateway.interfaces.chat.room.ChatRoomResponse;
-import discord.chat.gateway.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.gateway.interfaces.common.exception.CustomResourceConflictException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomResourceConflictException;
 
 @Service
 @RequiredArgsConstructor

@@ -7,16 +7,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import discord.chat.api.infrastructure.chat.channel.TextChannel;
-import discord.chat.api.infrastructure.chat.channel.TextChannelMongoRepository;
-import discord.chat.api.infrastructure.chat.room.ChatRoom;
-import discord.chat.api.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.api.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.api.infrastructure.user.User;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
 import discord.chat.api.interfaces.chat.channel.TextChannelResponse;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.api.interfaces.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;
 
 @Service

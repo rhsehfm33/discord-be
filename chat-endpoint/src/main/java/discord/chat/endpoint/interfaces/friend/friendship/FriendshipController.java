@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import discord.chat.endpoint.domain.friend.friendship.FriendStatus;
+import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 import discord.chat.endpoint.domain.friend.friendship.FriendshipService;
-import discord.chat.endpoint.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.endpoint.interfaces.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 
 @RestController
 @RequestMapping("/friends/friendships")

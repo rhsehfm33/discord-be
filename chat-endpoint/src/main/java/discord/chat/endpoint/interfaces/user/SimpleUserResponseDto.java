@@ -1,7 +1,7 @@
 package discord.chat.endpoint.interfaces.user;
 
 import lombok.Getter;
-import discord.chat.endpoint.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 
 @Getter
 public class SimpleUserResponseDto {

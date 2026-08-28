@@ -2,7 +2,7 @@ package discord.chat.gateway.interfaces.friend.friendship;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import discord.chat.gateway.domain.friend.friendship.FriendStatus;
+import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 
 @Getter
 @AllArgsConstructor

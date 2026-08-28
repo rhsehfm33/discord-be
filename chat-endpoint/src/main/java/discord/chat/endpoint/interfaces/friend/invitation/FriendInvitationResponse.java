@@ -2,7 +2,7 @@ package discord.chat.endpoint.interfaces.friend.invitation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import discord.chat.endpoint.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 import discord.chat.endpoint.interfaces.user.SimpleUserResponseDto;
 
 @Getter

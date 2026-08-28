@@ -1,7 +1,7 @@
 package discord.chat.endpoint.interfaces.chat.channel;
 
 import lombok.Getter;
-import discord.chat.endpoint.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
 
 @Getter
 public class TextChannelResponse {

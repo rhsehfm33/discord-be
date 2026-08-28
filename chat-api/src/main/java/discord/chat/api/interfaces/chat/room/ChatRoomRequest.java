@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.chat.room;
 
-import discord.chat.api.domain.chat.room.ChatRoomType;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 import lombok.Getter;
 import lombok.Setter;
 

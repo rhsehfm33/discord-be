@@ -1,13 +1,13 @@
 package discord.chat.gateway.domain.user;
 
-import discord.chat.gateway.infrastructure.chat.room.ChatRoom;
-import discord.chat.gateway.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.gateway.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.gateway.infrastructure.chat.subsription.ChatSubscription;
-import discord.chat.gateway.infrastructure.user.User;
-import discord.chat.gateway.infrastructure.user.UserMongoRepository;
-import discord.chat.gateway.interfaces.common.exception.CustomAuthorizationError;
-import discord.chat.gateway.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
+import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.UserMongoRepository;
+import discord.chat.common.exception.CustomAuthorizationError;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.gateway.interfaces.user.UserRequest;
 import discord.chat.gateway.interfaces.user.UserResponse;
 import jakarta.persistence.EntityNotFoundException;
@@ -57,7 +57,9 @@ public class UserService implements UserDetailsService {
 
     public UserResponse createdUser(UserRequest dto) {
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
-        User user = userMongoRepository.save(new User(dto));
+        User user = userMongoRepository.save(
+            new User(dto.getNickName(), dto.getEmail(), dto.getPassword(), dto.getImageUrl())
+        );
         return new UserResponse(user);
     }
 

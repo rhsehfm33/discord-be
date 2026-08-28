@@ -8,8 +8,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import discord.chat.endpoint.infrastructure.user.User;
-import discord.chat.endpoint.infrastructure.user.UserMongoRepository;
+import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.UserMongoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

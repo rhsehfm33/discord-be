@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import discord.chat.endpoint.domain.chat.channel.TextChannelService;
-import discord.chat.endpoint.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.endpoint.interfaces.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 
 @RestController
 @RequiredArgsConstructor

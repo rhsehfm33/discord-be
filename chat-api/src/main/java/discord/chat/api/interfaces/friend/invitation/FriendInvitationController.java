@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.api.domain.friend.invitation.FriendInvitationService;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @RestController

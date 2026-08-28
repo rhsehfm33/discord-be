@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.chat.channel;
 
-import discord.chat.api.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.Getter;
 
 @Getter

@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.friend.friendship;
 
-import discord.chat.api.domain.friend.friendship.FriendStatus;
+import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

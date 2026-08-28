@@ -1,6 +1,6 @@
 package discord.chat.gateway.interfaces.common.security;
 
-import discord.chat.gateway.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

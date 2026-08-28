@@ -17,16 +17,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import discord.chat.api.infrastructure.chat.channel.TextChannel;
-import discord.chat.api.infrastructure.chat.channel.TextChannelMongoRepository;
-import discord.chat.api.infrastructure.chat.room.ChatRoom;
-import discord.chat.api.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.api.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.api.infrastructure.chat.subsription.ChatSubscription;
-import discord.chat.api.infrastructure.user.User;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
+import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
 import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -53,7 +53,9 @@ public class ChatRoomService {
             chatRoomRequest.setImage(dummyImages.get(random.nextInt(dummyImages.size())));
         }
         User owner = (User) authentication.getPrincipal();
-        ChatRoom newChatRoom = new ChatRoom(owner, chatRoomRequest);
+        ChatRoom newChatRoom = new ChatRoom(
+            owner, chatRoomRequest.getTitle(), chatRoomRequest.getImage(), chatRoomRequest.getType()
+        );
         newChatRoom = chatRoomMongoRepository.save(newChatRoom);
         chatSubscriptMongoRepository.save(new ChatSubscription(owner, newChatRoom));
         TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);

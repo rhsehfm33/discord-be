@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.user;
 
-import discord.chat.api.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 import lombok.Getter;
 
 @Getter

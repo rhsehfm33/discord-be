@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import discord.chat.gateway.domain.user.UserService;
-import discord.chat.gateway.interfaces.common.exception.CustomAuthorizationError;
-import discord.chat.gateway.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomAuthorizationError;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 
 @RestController
 @RequestMapping

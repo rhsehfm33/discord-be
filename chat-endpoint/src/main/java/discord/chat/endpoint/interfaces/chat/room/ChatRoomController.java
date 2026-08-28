@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import discord.chat.endpoint.domain.chat.room.ChatRoomService;
-import discord.chat.endpoint.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 
 @RestController
 @RequiredArgsConstructor

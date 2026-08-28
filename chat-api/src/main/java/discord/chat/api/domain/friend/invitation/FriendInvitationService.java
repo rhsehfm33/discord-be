@@ -1,6 +1,6 @@
 package discord.chat.api.domain.friend.invitation;
 
-import static discord.chat.api.domain.friend.friendship.FriendStatus.*;
+import static discord.chat.common.infrastructure.friend.friendship.FriendStatus.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,13 +17,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import discord.chat.api.infrastructure.friend.friendship.Friendship;
-import discord.chat.api.infrastructure.friend.friendship.FriendshipMongoRepository;
-import discord.chat.api.infrastructure.friend.invitation.FriendInvitation;
-import discord.chat.api.infrastructure.friend.invitation.FriendInvitationMongoRepository;
-import discord.chat.api.infrastructure.user.User;
-import discord.chat.api.infrastructure.user.UserMongoRepository;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.infrastructure.friend.friendship.Friendship;
+import discord.chat.common.infrastructure.friend.friendship.FriendshipMongoRepository;
+import discord.chat.common.infrastructure.friend.invitation.FriendInvitation;
+import discord.chat.common.infrastructure.friend.invitation.FriendInvitationMongoRepository;
+import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.UserMongoRepository;
+import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.api.interfaces.friend.invitation.FriendInvitationResponse;
 import lombok.RequiredArgsConstructor;
 

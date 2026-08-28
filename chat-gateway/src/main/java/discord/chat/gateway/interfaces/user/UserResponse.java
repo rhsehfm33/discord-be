@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import discord.chat.gateway.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 
 @Getter
 @Builder

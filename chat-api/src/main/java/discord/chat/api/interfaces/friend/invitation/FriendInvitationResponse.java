@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.friend.invitation;
 
-import discord.chat.api.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.interfaces.user.SimpleUserResponseDto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

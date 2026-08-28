@@ -2,7 +2,7 @@ package discord.chat.api.interfaces.user;
 
 import java.time.LocalDateTime;
 
-import discord.chat.api.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

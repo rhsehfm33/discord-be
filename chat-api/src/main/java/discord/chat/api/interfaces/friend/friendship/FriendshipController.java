@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import discord.chat.api.domain.friend.friendship.FriendStatus;
+import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 import discord.chat.api.domain.friend.friendship.FriendshipService;
-import discord.chat.api.interfaces.common.exception.CustomEntityNotFoundException;
-import discord.chat.api.interfaces.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;
 
 @RestController

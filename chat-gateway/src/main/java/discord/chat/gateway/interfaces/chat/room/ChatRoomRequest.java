@@ -2,7 +2,7 @@ package discord.chat.gateway.interfaces.chat.room;
 
 import lombok.Getter;
 import lombok.Setter;
-import discord.chat.gateway.domain.chat.room.ChatRoomType;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 
 @Getter
 public class ChatRoomRequest {
