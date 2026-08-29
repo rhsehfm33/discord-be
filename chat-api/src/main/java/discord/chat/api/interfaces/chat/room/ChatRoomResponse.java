@@ -2,9 +2,9 @@ package discord.chat.api.interfaces.chat.room;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Getter;
 import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
-import lombok.Getter;
 
 @Getter
 public class ChatRoomResponse {
@@ -24,3 +24,4 @@ public class ChatRoomResponse {
         this.isMine = isMine;
     }
 }
+

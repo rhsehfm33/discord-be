@@ -23,3 +23,4 @@ public class UserResponse {
         this.createdAt = user.getCreatedAt();
     }
 }
+

@@ -1,5 +1,6 @@
 rootProject.name = 'discord'
 include 'chat-api'
 include 'chat-gateway'
-include 'chat-endpoint'
+include 'chat-message'
 include 'chat-common'
+

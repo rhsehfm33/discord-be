@@ -83,3 +83,4 @@ public class FriendshipService {
         friendshipMongoRepository.delete(friendship);
     }
 }
+

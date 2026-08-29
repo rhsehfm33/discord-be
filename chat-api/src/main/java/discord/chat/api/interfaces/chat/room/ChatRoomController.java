@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.RequiredArgsConstructor;
 import discord.chat.api.domain.chat.room.ChatRoomService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
@@ -55,3 +55,4 @@ public class ChatRoomController {
         chatRoomService.delete(authentication, chatRoomId);
     }
 }
+

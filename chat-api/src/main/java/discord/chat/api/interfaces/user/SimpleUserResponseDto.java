@@ -11,3 +11,4 @@ public class SimpleUserResponseDto {
         this.nickName = user.getNickName();
     }
 }
+

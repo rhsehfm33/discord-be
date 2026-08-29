@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.RequiredArgsConstructor;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
@@ -27,7 +28,6 @@ import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
 import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional

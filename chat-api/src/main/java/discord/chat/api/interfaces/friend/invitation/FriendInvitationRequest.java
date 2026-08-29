@@ -9,3 +9,4 @@ public class FriendInvitationRequest {
     private final String id;
     private final String nickName;
 }
+

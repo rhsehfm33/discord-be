@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.RequiredArgsConstructor;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
@@ -17,7 +18,6 @@ import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
 import discord.chat.api.interfaces.chat.channel.TextChannelResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional
@@ -87,3 +87,4 @@ public class TextChannelService {
         textChannelMongoRepository.delete(textChannel);
     }
 }
+

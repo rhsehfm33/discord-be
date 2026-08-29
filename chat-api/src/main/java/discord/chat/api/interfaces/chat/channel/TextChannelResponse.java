@@ -1,7 +1,7 @@
 package discord.chat.api.interfaces.chat.channel;
 
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.Getter;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
 
 @Getter
 public class TextChannelResponse {
@@ -17,3 +17,4 @@ public class TextChannelResponse {
         this.chatRoomId = textChannel.getChatRoom().getId();
     }
 }
+

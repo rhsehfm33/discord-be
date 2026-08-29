@@ -1,8 +1,8 @@
 package discord.chat.api.interfaces.chat.room;
 
-import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 import lombok.Getter;
 import lombok.Setter;
+import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 
 @Getter
 public class ChatRoomRequest {
@@ -13,3 +13,4 @@ public class ChatRoomRequest {
     @Setter
     private String image;
 }
+

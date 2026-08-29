@@ -119,3 +119,4 @@ public class FriendInvitationService {
         friendInvitationMongoRepository.delete(friendInvitation);
     }
 }
+

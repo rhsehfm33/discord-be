@@ -16,3 +16,4 @@ public class FriendInvitationResponse {
         this.user = new SimpleUserResponseDto(user);
     }
 }
+

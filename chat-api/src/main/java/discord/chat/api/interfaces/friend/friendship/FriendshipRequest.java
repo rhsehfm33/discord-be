@@ -10,3 +10,4 @@ public class FriendshipRequest {
     private final String toUserNickName;
     private final FriendStatus friendStatus;
 }
+

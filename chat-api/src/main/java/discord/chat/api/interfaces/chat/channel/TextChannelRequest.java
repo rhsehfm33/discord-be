@@ -10,3 +10,4 @@ public class TextChannelRequest {
     private String title;
     private String chatRoomId;
 }
+

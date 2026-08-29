@@ -7,11 +7,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.RequiredArgsConstructor;
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
 import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomResourceConflictException;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,3 +33,4 @@ public class ChatSubscriptionController {
         chatSubscriptionService.unsubscribe(authentication, chatRoomId);
     }
 }
+

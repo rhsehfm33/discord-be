@@ -50,3 +50,4 @@ public class FriendInvitationController {
         friendInvitationService.cancel(authentication, invitationId);
     }
 }
+
