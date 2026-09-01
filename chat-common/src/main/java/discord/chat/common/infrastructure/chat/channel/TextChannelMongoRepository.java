@@ -1,5 +1,6 @@
 package discord.chat.common.infrastructure.chat.channel;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -13,4 +14,6 @@ public interface TextChannelMongoRepository extends MongoRepository<TextChannel,
     void deleteByOwner(User owner);
 
     List<TextChannel> findAllByChatRoom(ChatRoom chatRoom);
+
+    List<TextChannel> findAllByChatRoomIn(Collection<ChatRoom> chatRooms);
 }
