@@ -13,13 +13,15 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
 
     @Override
     public String resolve(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
                 if (TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-                    return cookie.getValue(); // Extract the token from the "access_token" cookie
+                    return cookie.getValue();
                 }
             }
         }
-        return null; // No token found
+        return null;
     }
 }
