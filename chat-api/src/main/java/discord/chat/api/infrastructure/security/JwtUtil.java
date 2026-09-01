@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -68,4 +68,6 @@ public class JwtUtil {
         }
     }
 }
+
+
 

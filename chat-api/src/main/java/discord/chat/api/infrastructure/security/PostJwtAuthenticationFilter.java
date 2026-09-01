@@ -1,4 +1,4 @@
-package discord.chat.gateway.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import discord.chat.common.infrastructure.user.User;
 import jakarta.servlet.FilterChain;
@@ -41,8 +41,11 @@ public class PostJwtAuthenticationFilter extends OncePerRequestFilter {
             jwt.getSubject(),
             jwt.getClaimAsString(JwtClaimNames.NICK_NAME),
             jwt.getClaimAsString(JwtClaimNames.EMAIL),
-            null,   // password is never carried in a token
+            null,   // password should not be exposed
             jwt.getClaimAsString(JwtClaimNames.IMAGE_URL)
         );
     }
 }
+
+
+

@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import java.io.IOException;
 
@@ -56,3 +56,5 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.getWriter().flush();
     }
 }
+
+

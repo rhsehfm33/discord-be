@@ -1,4 +1,4 @@
-package discord.chat.message.infrastructure.common.redis;
+package discord.chat.gateway.infrastructure.redis;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RedisConnectionVerifier implements ApplicationRunner {
-
     private static final Logger logger = LoggerFactory.getLogger(RedisConnectionVerifier.class);
 
     private final RedisConnectionFactory connectionFactory;
@@ -35,4 +34,3 @@ public class RedisConnectionVerifier implements ApplicationRunner {
         }
     }
 }
-

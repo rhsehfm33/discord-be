@@ -1,6 +1,7 @@
-package discord.chat.gateway.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.Cookie;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class CookieBearerTokenResolver implements BearerTokenResolver {
 
     private static final String TOKEN_COOKIE_NAME = "access_token";
+    private final BearerTokenResolver headerBearerTokenResolver = new DefaultBearerTokenResolver();
 
     @Override
     public String resolve(HttpServletRequest request) {
@@ -22,6 +24,8 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
                 }
             }
         }
-        return null;
+        return headerBearerTokenResolver.resolve(request);
     }
 }
+
+

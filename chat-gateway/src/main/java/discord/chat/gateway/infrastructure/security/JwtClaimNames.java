@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.gateway.infrastructure.security;
 
 /**
  * Claim names carried by the self-contained access token, shared by the issuer and every
@@ -12,4 +12,5 @@ public final class JwtClaimNames {
     private JwtClaimNames() {
     }
 }
+
 

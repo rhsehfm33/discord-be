@@ -1,11 +1,10 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.gateway.infrastructure.security;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,6 +19,7 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenResolv
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -50,10 +50,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
-        LoginSuccessHandler loginSuccessHandler,
         BearerTokenResolver bearerTokenResolver,
         PostJwtAuthenticationFilter postJwtAuthenticationFilter
     ) throws Exception {
@@ -65,24 +63,22 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    new AntPathRequestMatcher("/ws/**")
+                ).authenticated()
                 .anyRequest().permitAll())
-            .formLogin(form -> form
-                .loginPage("/login")
-                .successHandler(loginSuccessHandler)
-                .usernameParameter("email")
-                .permitAll())
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(new JwtAuthenticationConverter())
                     .jwkSetUri(jwtSetUri))
                 .bearerTokenResolver(bearerTokenResolver) // Extract JWT from cookie
             )
-            .addFilterAfter(postJwtAuthenticationFilter, BearerTokenAuthenticationFilter.class)
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-            );
+            .exceptionHandling(exceptionHandlingConfigurer -> exceptionHandlingConfigurer
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+            .addFilterAfter(postJwtAuthenticationFilter, BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }
 }
+
 

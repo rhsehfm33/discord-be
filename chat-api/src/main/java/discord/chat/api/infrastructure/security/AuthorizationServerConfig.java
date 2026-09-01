@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -74,3 +74,5 @@ public class AuthorizationServerConfig {
             .build();
     }
 }
+
+

@@ -1,4 +1,4 @@
-package discord.chat.message.interfaces.common.security;
+package discord.chat.message.infrastructure.security;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,3 +25,5 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
         return headerBearerTokenResolver.resolve(request);
     }
 }
+
+

@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.common.security;
+package discord.chat.api.infrastructure.security;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -44,3 +44,5 @@ public class JWKSetConfig {
         }
     }
 }
+
+
