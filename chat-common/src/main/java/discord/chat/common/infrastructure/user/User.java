@@ -1,5 +1,6 @@
 package discord.chat.common.infrastructure.user;
 
+import java.security.Principal;
 import java.util.Objects;
 
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -17,7 +18,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "users")
-public class User extends BaseEntity {
+public class User extends BaseEntity implements Principal {
     @Id
     private String id;
 
@@ -42,6 +43,11 @@ public class User extends BaseEntity {
         this.email = email;
         this.password = password;
         this.imageUrl = imageUrl;
+    }
+
+    @Override
+    public String getName() {
+        return id;
     }
 
     @Override
