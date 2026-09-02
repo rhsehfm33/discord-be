@@ -2,7 +2,6 @@ package discord.chat.gateway.application.message;
 
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.gateway.infrastructure.client.message.ChatMessageClient;
-import discord.chat.gateway.infrastructure.client.message.CreateStoredMessageRequest;
 import discord.chat.gateway.infrastructure.client.message.StoredMessageResponse;
 import discord.chat.gateway.infrastructure.websocket.WebSocketSessionAuthorizationRegistry;
 import discord.chat.gateway.interfaces.chat.channel.MessageSenderResponse;
@@ -38,12 +37,10 @@ public class MessageGatewayFacade {
         }
 
         StoredMessageResponse storedMessage = chatMessageClient.createMessage(
-            new CreateStoredMessageRequest(
-                sender.getId(),
-                authorizedChatRoomId,
-                request.getTextChannelId(),
-                request.getContent()
-            )
+            authorizedChatRoomId,
+            request.getTextChannelId(),
+            sender.getId(),
+            request.getContent()
         );
 
         ReceivedTextMessageResponse response = new ReceivedTextMessageResponse(

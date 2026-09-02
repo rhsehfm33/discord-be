@@ -3,6 +3,7 @@ package discord.chat.message.infrastructure.message;
 import java.time.Instant;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -12,6 +13,10 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @Document(collection = "chat_messages")
+@CompoundIndex(
+    name = "chat_room_text_channel_id_desc",
+    def = "{'chat_room_id': 1, 'text_channel_id': 1, '_id': -1}"
+)
 public class ChatMessage {
     @Id
     private String id;

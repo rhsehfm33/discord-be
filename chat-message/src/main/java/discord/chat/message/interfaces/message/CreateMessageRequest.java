@@ -12,12 +12,6 @@ public class CreateMessageRequest {
     private String senderId;
 
     @NotBlank
-    private String chatRoomId;
-
-    @NotBlank
-    private String textChannelId;
-
-    @NotBlank
     @Size(max = 2000)
     private String content;
 }

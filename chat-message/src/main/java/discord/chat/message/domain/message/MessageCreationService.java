@@ -13,12 +13,16 @@ import lombok.RequiredArgsConstructor;
 public class MessageCreationService {
     private final ChatMessageMongoRepository chatMessageMongoRepository;
 
-    public MessageResponse create(CreateMessageRequest request) {
+    public MessageResponse create(
+        String chatRoomId,
+        String textChannelId,
+        CreateMessageRequest request
+    ) {
         ChatMessage message = chatMessageMongoRepository.save(
             new ChatMessage(
                 request.getSenderId(),
-                request.getChatRoomId(),
-                request.getTextChannelId(),
+                chatRoomId,
+                textChannelId,
                 request.getContent()
             )
         );
