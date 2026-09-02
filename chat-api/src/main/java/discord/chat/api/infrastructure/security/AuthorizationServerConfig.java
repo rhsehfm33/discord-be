@@ -38,10 +38,10 @@ public class AuthorizationServerConfig {
     @Bean
     public RegisteredClientRepository registeredClientRepository(
         PasswordEncoder passwordEncoder,
-        @Value("${internal.gateway.client-id}") String clientId,
-        @Value("${internal.gateway.client-secret}") String clientSecret
+        @Value("${internal.message.client-id}") String clientId,
+        @Value("${internal.message.client-secret}") String clientSecret
     ) {
-        RegisteredClient gatewayClient = RegisteredClient.withId(UUID.randomUUID().toString())
+        RegisteredClient messageClient = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId(clientId)
             .clientSecret(passwordEncoder.encode(clientSecret))
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
@@ -52,7 +52,7 @@ public class AuthorizationServerConfig {
                 .build())
             .build();
 
-        return new InMemoryRegisteredClientRepository(gatewayClient);
+        return new InMemoryRegisteredClientRepository(messageClient);
     }
 
     @Bean
@@ -74,5 +74,4 @@ public class AuthorizationServerConfig {
             .build();
     }
 }
-
 

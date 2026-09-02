@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import discord.chat.message.infrastructure.message.ChatMessage;
 import discord.chat.message.infrastructure.message.ChatMessageMongoRepository;
-import discord.chat.message.interfaces.message.CreateMessageRequest;
 import discord.chat.message.interfaces.message.MessageResponse;
 import lombok.RequiredArgsConstructor;
 
@@ -16,14 +15,15 @@ public class MessageCreationService {
     public MessageResponse create(
         String chatRoomId,
         String textChannelId,
-        CreateMessageRequest request
+        String senderId,
+        String content
     ) {
         ChatMessage message = chatMessageMongoRepository.save(
             new ChatMessage(
-                request.getSenderId(),
+                senderId,
                 chatRoomId,
                 textChannelId,
-                request.getContent()
+                content
             )
         );
 
