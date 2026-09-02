@@ -1,5 +1,7 @@
 package discord.chat.api.interfaces.chat.channel;
 
+import static discord.chat.common.security.SecurityExpression.INTERNAL_ONLY;
+
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,7 +21,7 @@ public class InternalChannelAccessController {
     private final InternalChannelAccessService internalChannelAccessService;
 
     @GetMapping("/{userId}/text-channels")
-    @PreAuthorize("hasAuthority('SCOPE_internal')")
+    @PreAuthorize(INTERNAL_ONLY)
     public List<AccessibleTextChannelResponse> getAccessibleTextChannels(@PathVariable String userId)
         throws CustomEntityNotFoundException {
         return internalChannelAccessService.getAccessibleTextChannels(userId);

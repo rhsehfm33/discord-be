@@ -1,5 +1,7 @@
 package discord.chat.api.interfaces.user;
 
+import static discord.chat.common.security.SecurityExpression.INTERNAL_ONLY;
+
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,7 +21,7 @@ public class InternalUserProfileController {
     private final InternalUserProfileService internalUserProfileService;
 
     @PostMapping("/profiles")
-    @PreAuthorize("hasAuthority('SCOPE_internal')")
+    @PreAuthorize(INTERNAL_ONLY)
     public List<InternalUserProfileResponse> getProfiles(@RequestBody InternalUserProfilesRequest request)
         throws CustomIllegalArgumentException {
         return internalUserProfileService.getProfiles(request.userIds());

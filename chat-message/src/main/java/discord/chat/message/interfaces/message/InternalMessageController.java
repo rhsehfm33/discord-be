@@ -1,5 +1,7 @@
 package discord.chat.message.interfaces.message;
 
+import static discord.chat.common.security.SecurityExpression.INTERNAL_ONLY;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -28,7 +30,7 @@ public class InternalMessageController {
 
     @PostMapping("/chat-rooms/{chatRoomId}/text-channels/{textChannelId}/messages")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('SCOPE_internal')")
+    @PreAuthorize(INTERNAL_ONLY)
     public MessageResponse create(
         @PathVariable String chatRoomId,
         @PathVariable String textChannelId,
@@ -38,7 +40,7 @@ public class InternalMessageController {
     }
 
     @GetMapping("/chat-rooms/{chatRoomId}/text-channels/{textChannelId}/messages")
-    @PreAuthorize("hasAuthority('SCOPE_internal')")
+    @PreAuthorize(INTERNAL_ONLY)
     public List<MessageResponse> getMessages(
         @PathVariable String chatRoomId,
         @PathVariable String textChannelId,
