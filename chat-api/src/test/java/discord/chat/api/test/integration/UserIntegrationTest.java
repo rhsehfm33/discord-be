@@ -44,23 +44,23 @@ public class UserIntegrationTest extends BaseIntegrationTest {
         int numberOfThreads = 3;
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
 
-        List<Callable<UserResponse>> tasks = new ArrayList<>();
-        for (int i = 0; i < numberOfThreads; ++i) {
+        List<Callable<UserResponse>> userCreationTasks = new ArrayList<>();
+        for (int taskIndex = 0; taskIndex < numberOfThreads; ++taskIndex) {
             UserRequest userRequest = new UserRequest();
             InstanceSetter.setField(userRequest, "email", "test_user@gmail.com");
             InstanceSetter.setField(userRequest, "nickName", "test_user");
             InstanceSetter.setField(userRequest, "password", "asdqwe12#");
-            tasks.add(() -> userService.createdUser(userRequest));
+            userCreationTasks.add(() -> userService.createdUser(userRequest));
         }
 
         Assertions.assertThrows(ExecutionException.class, () -> {
-            List<Future<UserResponse>> results = executorService.invokeAll(tasks);
+            List<Future<UserResponse>> userCreationFutures = executorService.invokeAll(userCreationTasks);
 
-            for (Future<UserResponse> result : results) {
+            for (Future<UserResponse> userCreationFuture : userCreationFutures) {
                 try {
-                    result.get();
-                } catch (ExecutionException e) {
-                    throw e;
+                    userCreationFuture.get();
+                } catch (ExecutionException creationException) {
+                    throw creationException;
                 }
             }
         });

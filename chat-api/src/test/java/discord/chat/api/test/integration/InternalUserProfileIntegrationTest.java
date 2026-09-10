@@ -24,20 +24,20 @@ class InternalUserProfileIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void getProfilesPreservesRequestedOrderAndOmitsMissingUsers() throws Exception {
-        User first = userMongoRepository.save(
+        User firstUser = userMongoRepository.save(
             new User("first", "first@example.com", "password", "first.png")
         );
-        User second = userMongoRepository.save(
+        User secondUser = userMongoRepository.save(
             new User("second", "second@example.com", "password", null)
         );
 
-        List<InternalUserProfileResponse> result = internalUserProfileService.getProfiles(
-            List.of(second.getId(), "000000000000000000000000", first.getId(), second.getId())
+        List<InternalUserProfileResponse> userProfiles = internalUserProfileService.getProfiles(
+            List.of(secondUser.getId(), "000000000000000000000000", firstUser.getId(), secondUser.getId())
         );
 
-        assertThat(result).containsExactly(
-            new InternalUserProfileResponse(second.getId(), "second", null),
-            new InternalUserProfileResponse(first.getId(), "first", "first.png")
+        assertThat(userProfiles).containsExactly(
+            new InternalUserProfileResponse(secondUser.getId(), "second", null),
+            new InternalUserProfileResponse(firstUser.getId(), "first", "first.png")
         );
     }
 

@@ -4,12 +4,12 @@ import java.lang.reflect.Field;
 
 public class InstanceSetter {
 
-    public static void setField(Object obj, String fieldName, Object value)
+    public static void setField(Object targetObject, String fieldName, Object fieldValue)
         throws NoSuchFieldException, IllegalAccessException {
-        Class<?> clazz = obj.getClass();
-        Field field = clazz.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(obj, value);
+        Class<?> targetClass = targetObject.getClass();
+        Field targetField = targetClass.getDeclaredField(fieldName);
+        targetField.setAccessible(true);
+        targetField.set(targetObject, fieldValue);
     }
 
 }
