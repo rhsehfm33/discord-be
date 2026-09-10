@@ -1,4 +1,4 @@
-package discord.chat.message.test.integration;
+package discord.chat.message.integration;
 
 import discord.chat.message.application.message.MessageHistoryFacade;
 import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
@@ -7,7 +7,7 @@ import discord.chat.message.infrastructure.client.chatapi.InternalUserProfileRes
 import discord.chat.message.infrastructure.message.ChatMessage;
 import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.interfaces.message.ChatMessageResponse;
-import discord.chat.message.test.BaseIntegrationTest;
+import discord.chat.message.support.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -30,6 +30,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
     @MockBean
     private ChatApiClient chatApiClient;
 
+    // Checks that message history includes sender profiles after checking access.
     @Test
     void getMessagesAuthorizesAndAddsSenderProfiles() throws Exception {
         chatMessageRepository.saveAll(List.of(
@@ -56,6 +57,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
             .satisfies(messageResponse -> assertThat(messageResponse.getSender().nickName()).isEqualTo("Unknown"));
     }
 
+    // Checks that users cannot read messages from channels they cannot access.
     @Test
     void getMessagesRejectsUnauthorizedChannels() {
         when(chatApiClient.getAccessibleTextChannels("user")).thenReturn(List.of());

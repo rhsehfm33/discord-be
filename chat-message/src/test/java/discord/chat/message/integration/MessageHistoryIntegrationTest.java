@@ -1,11 +1,11 @@
-package discord.chat.message.test.integration;
+package discord.chat.message.integration;
 
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.message.domain.message.MessageHistoryService;
 import discord.chat.message.infrastructure.message.ChatMessage;
 import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.interfaces.message.MessageResponse;
-import discord.chat.message.test.BaseIntegrationTest;
+import discord.chat.message.support.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -22,6 +22,7 @@ class MessageHistoryIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
+    // Checks that history pages stay in one channel and do not repeat messages.
     @Test
     void getMessagesPaginatesNewestFirstWithoutCrossingChannels() throws Exception {
         List<ChatMessage> channelMessages = new ArrayList<>();
@@ -50,6 +51,7 @@ class MessageHistoryIntegrationTest extends BaseIntegrationTest {
             );
     }
 
+    // Checks that invalid message cursors and page sizes are rejected.
     @Test
     void getMessagesRejectsInvalidCursorAndLimit() {
         assertThatThrownBy(() -> messageHistoryService.getMessages("room", "channel", "bad", 50))

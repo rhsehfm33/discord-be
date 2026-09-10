@@ -1,4 +1,4 @@
-package discord.chat.message.test;
+package discord.chat.message.support;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +24,7 @@ public class BaseIntegrationTest {
     @Autowired
     private MongoMappingContext mongoMappingContext;
 
+    // Deletes the database only when its name is test-discord.
     private void dropTestDB() {
         if (mongoTemplate.getDb().getName().equals(TEST_DB)) {
             mongoTemplate.getDb().drop();
@@ -59,12 +60,14 @@ public class BaseIntegrationTest {
         }
     }
 
+    // Resets the test database and creates its indexes before each test.
     @BeforeEach
     public void setupDBBefore() {
         dropTestDB();
         createTestDBIndexes();
     }
 
+    // Removes test data after each test.
     @AfterEach
     public void cleanupDBAfter() {
         dropTestDB();

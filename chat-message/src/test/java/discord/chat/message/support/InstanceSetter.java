@@ -1,9 +1,10 @@
-package discord.chat.message.util;
+package discord.chat.message.support;
 
 import java.lang.reflect.Field;
 
 public class InstanceSetter {
 
+    // Sets a private field on a test object.
     public static void setField(Object targetObject, String fieldName, Object fieldValue)
         throws NoSuchFieldException, IllegalAccessException {
         Class<?> targetClass = targetObject.getClass();

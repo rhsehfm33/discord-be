@@ -1,8 +1,6 @@
-package discord.chat.message.test.unit;
+package discord.chat.message.infrastructure.websocket;
 
 import discord.chat.message.infrastructure.client.chatapi.ChatApiClient;
-import discord.chat.message.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.message.infrastructure.websocket.WebSocketAuthorizationInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;

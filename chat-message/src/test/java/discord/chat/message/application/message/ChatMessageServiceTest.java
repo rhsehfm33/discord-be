@@ -1,7 +1,6 @@
-package discord.chat.message.test.unit;
+package discord.chat.message.application.message;
 
 import discord.chat.common.infrastructure.user.User;
-import discord.chat.message.application.message.ChatMessageService;
 import discord.chat.message.infrastructure.message.ChatMessage;
 import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.infrastructure.redis.ChatMessageRedisBroker;
@@ -9,7 +8,7 @@ import discord.chat.message.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.message.infrastructure.websocket.WebSocketSessionMessageSender;
 import discord.chat.message.interfaces.message.ChatMessageResponse;
 import discord.chat.message.interfaces.message.MessagePublishErrorResponse;
-import discord.chat.message.util.InstanceSetter;
+import discord.chat.message.support.InstanceSetter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

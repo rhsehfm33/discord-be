@@ -1,4 +1,4 @@
-package discord.chat.message.test.integration;
+package discord.chat.message.integration;
 
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.message.application.message.ChatMessageService;
@@ -7,7 +7,7 @@ import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.message.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.message.infrastructure.websocket.WebSocketSessionMessageSender;
-import discord.chat.message.test.BaseIntegrationTest;
+import discord.chat.message.support.BaseIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

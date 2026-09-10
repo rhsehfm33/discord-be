@@ -1,6 +1,5 @@
-package discord.chat.message.test.unit;
+package discord.chat.message.infrastructure.websocket;
 
-import discord.chat.message.infrastructure.websocket.WebSocketSessionMessageSender;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.messaging.MessageHeaders;

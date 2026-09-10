@@ -1,4 +1,4 @@
-package discord.chat.message.test.integration;
+package discord.chat.message.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.message.application.message.ChatRoomMessageDelivery;
