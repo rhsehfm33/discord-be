@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.stereotype.Component;
+import org.springframework.lang.Nullable;
 
 @Component
 public class CookieBearerTokenResolver implements BearerTokenResolver {
@@ -12,6 +13,7 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
     private final BearerTokenResolver headerBearerTokenResolver = new DefaultBearerTokenResolver();
 
     @Override
+    @Nullable
     public String resolve(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
 
@@ -25,5 +27,4 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
         return headerBearerTokenResolver.resolve(request);
     }
 }
-
 
