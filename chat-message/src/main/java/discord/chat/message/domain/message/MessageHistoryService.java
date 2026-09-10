@@ -2,7 +2,7 @@ package discord.chat.message.domain.message;
 
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.message.infrastructure.message.ChatMessage;
-import discord.chat.message.infrastructure.message.ChatMessageMongoRepository;
+import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.interfaces.message.MessageResponse;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class MessageHistoryService {
-    private final ChatMessageMongoRepository chatMessageMongoRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     public List<MessageResponse> getMessages(
         String chatRoomId,
@@ -38,12 +38,12 @@ public class MessageHistoryService {
 
         PageRequest page = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
         List<ChatMessage> messages = beforeMessageId == null
-            ? chatMessageMongoRepository.findByChatRoomIdAndTextChannelId(
+            ? chatMessageRepository.findByChatRoomIdAndTextChannelId(
                 chatRoomId,
                 textChannelId,
                 page
             )
-            : chatMessageMongoRepository.findMessagesBefore(
+            : chatMessageRepository.findMessagesBefore(
                 chatRoomId,
                 textChannelId,
                 new ObjectId(beforeMessageId),

@@ -27,7 +27,7 @@ public class MessageHistoryController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public List<ReceivedTextMessageResponse> getMessages(
+    public List<ChatMessageResponse> getMessages(
         Authentication authentication,
         @PathVariable String chatRoomId,
         @PathVariable String textChannelId,

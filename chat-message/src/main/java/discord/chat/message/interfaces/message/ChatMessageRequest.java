@@ -7,10 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class SendTextMessageRequest {
-    @NotBlank
-    private String chatRoomId;
-
+public class ChatMessageRequest {
     @NotBlank
     private String textChannelId;
 

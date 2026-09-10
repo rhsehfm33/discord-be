@@ -1,53 +1,52 @@
 package discord.chat.message.test.integration;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import discord.chat.common.exception.CustomIllegalArgumentException;
+import discord.chat.message.domain.message.MessageHistoryService;
+import discord.chat.message.infrastructure.message.ChatMessage;
+import discord.chat.message.infrastructure.message.ChatMessageRepository;
+import discord.chat.message.interfaces.message.MessageResponse;
+import discord.chat.message.test.BaseIntegrationTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.message.domain.message.MessageHistoryService;
-import discord.chat.message.infrastructure.message.ChatMessage;
-import discord.chat.message.infrastructure.message.ChatMessageMongoRepository;
-import discord.chat.message.interfaces.message.MessageResponse;
-import discord.chat.message.test.BaseIntegrationTest;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MessageHistoryIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MessageHistoryService messageHistoryService;
 
     @Autowired
-    private ChatMessageMongoRepository chatMessageMongoRepository;
+    private ChatMessageRepository chatMessageRepository;
 
     @Test
     void getMessagesPaginatesNewestFirstWithoutCrossingChannels() throws Exception {
-        List<ChatMessage> messages = new ArrayList<>();
-        for (int index = 0; index < 55; index++) {
-            messages.add(new ChatMessage("sender", "room", "channel", "message-" + index));
+        List<ChatMessage> channelMessages = new ArrayList<>();
+        for (int messageIndex = 0; messageIndex < 55; messageIndex++) {
+            channelMessages.add(new ChatMessage("sender", "room", "channel", "message-" + messageIndex));
         }
-        chatMessageMongoRepository.saveAll(messages);
-        chatMessageMongoRepository.save(
+        chatMessageRepository.saveAll(channelMessages);
+        chatMessageRepository.save(
             new ChatMessage("sender", "room", "other-channel", "not-included")
         );
 
-        List<MessageResponse> firstPage = messageHistoryService.getMessages(
+        List<MessageResponse> firstPageMessages = messageHistoryService.getMessages(
             "room", "channel", null, 50
         );
-        List<MessageResponse> secondPage = messageHistoryService.getMessages(
-            "room", "channel", firstPage.get(firstPage.size() - 1).getMessageId(), 50
+        List<MessageResponse> secondPageMessages = messageHistoryService.getMessages(
+            "room", "channel", firstPageMessages.get(firstPageMessages.size() - 1).getMessageId(), 50
         );
 
-        assertThat(firstPage).hasSize(50);
-        assertThat(secondPage).hasSize(5);
-        assertThat(firstPage.get(0).getContent()).isEqualTo("message-54");
-        assertThat(secondPage.get(secondPage.size() - 1).getContent()).isEqualTo("message-0");
-        assertThat(firstPage).extracting(MessageResponse::getMessageId)
+        assertThat(firstPageMessages).hasSize(50);
+        assertThat(secondPageMessages).hasSize(5);
+        assertThat(firstPageMessages.get(0).getContent()).isEqualTo("message-54");
+        assertThat(secondPageMessages.get(secondPageMessages.size() - 1).getContent()).isEqualTo("message-0");
+        assertThat(firstPageMessages).extracting(MessageResponse::getMessageId)
             .doesNotContainAnyElementsOf(
-                secondPage.stream().map(MessageResponse::getMessageId).toList()
+                secondPageMessages.stream().map(MessageResponse::getMessageId).toList()
             );
     }
 

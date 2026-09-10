@@ -1,13 +1,13 @@
 package discord.chat.message.infrastructure.message;
 
-import java.util.List;
-
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-public interface ChatMessageMongoRepository extends MongoRepository<ChatMessage, String> {
+import java.util.List;
+
+public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
     List<ChatMessage> findByChatRoomIdAndTextChannelId(
         String chatRoomId,
         String textChannelId,

@@ -9,6 +9,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
@@ -21,10 +23,11 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PERSONAL_CHANNEL_DESTINATION = "/user/channel";
 
     private final ChatApiClient chatApiClient;
-    private final WebSocketSessionAuthorizationRegistry sessionAuthorizationRegistry;
+    private final ChatSessionRegistry chatSessionRegistry;
 
     @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    @NonNull
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
         StompCommand command = accessor.getCommand();
 
@@ -32,11 +35,33 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             registerSession(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(command)) {
             validateSubscription(accessor);
+        } else if (StompCommand.SEND.equals(command)
+            && !"/app/sendText".equals(accessor.getDestination())) {
+            throw new IllegalArgumentException("Messages must be sent through /app/sendText");
         } else if (StompCommand.DISCONNECT.equals(command)) {
-            sessionAuthorizationRegistry.remove(accessor.getSessionId());
+            chatSessionRegistry.remove(accessor.getSessionId());
         }
 
         return message;
+    }
+
+    @Override
+    public void afterSendCompletion(
+        @NonNull Message<?> message,
+        @NonNull MessageChannel channel,
+        boolean sent,
+        @Nullable Exception exception
+    ) {
+        if (sent && exception == null) {
+            return;
+        }
+
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        if (!StompCommand.CONNECT.equals(accessor.getCommand())) {
+            return;
+        }
+
+        chatSessionRegistry.remove(accessor.getSessionId());
     }
 
     private void registerSession(StompHeaderAccessor accessor) {
@@ -48,11 +73,12 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         Set<AccessibleTextChannelResponse> channels = Set.copyOf(
             chatApiClient.getAccessibleTextChannels(user.getId())
         );
-        sessionAuthorizationRegistry.register(accessor.getSessionId(), channels);
+        chatSessionRegistry.register(accessor.getSessionId(), channels);
     }
 
     private void validateSubscription(StompHeaderAccessor accessor) {
-        if (!PERSONAL_CHANNEL_DESTINATION.equals(accessor.getDestination())) {
+        if (!PERSONAL_CHANNEL_DESTINATION.equals(accessor.getDestination())
+            && !"/user/channel/errors".equals(accessor.getDestination())) {
             throw new IllegalArgumentException("Only the personal channel destination may be subscribed");
         }
     }

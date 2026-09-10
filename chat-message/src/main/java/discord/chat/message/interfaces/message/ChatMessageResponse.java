@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class ReceivedTextMessageResponse {
+public class ChatMessageResponse {
     private final String messageId;
     private final String chatRoomId;
     private final String textChannelId;

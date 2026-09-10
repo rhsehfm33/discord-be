@@ -16,7 +16,7 @@ import discord.chat.message.infrastructure.client.chatapi.ChatApiClient;
 import discord.chat.message.infrastructure.client.chatapi.InternalUserProfileResponse;
 import discord.chat.message.interfaces.message.MessageResponse;
 import discord.chat.message.interfaces.message.MessageSenderResponse;
-import discord.chat.message.interfaces.message.ReceivedTextMessageResponse;
+import discord.chat.message.interfaces.message.ChatMessageResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -25,7 +25,7 @@ public class MessageHistoryFacade {
     private final ChatApiClient chatApiClient;
     private final MessageHistoryService messageHistoryService;
 
-    public List<ReceivedTextMessageResponse> getMessages(
+    public List<ChatMessageResponse> getMessages(
         String userId,
         String chatRoomId,
         String textChannelId,
@@ -70,7 +70,7 @@ public class MessageHistoryFacade {
             && channel.textChannelId().equals(textChannelId);
     }
 
-    private ReceivedTextMessageResponse toResponse(
+    private ChatMessageResponse toResponse(
         MessageResponse message,
         InternalUserProfileResponse profile
     ) {
@@ -78,7 +78,7 @@ public class MessageHistoryFacade {
             ? new MessageSenderResponse(message.getSenderId(), "Unknown", null)
             : new MessageSenderResponse(profile.id(), profile.nickName(), profile.imageUrl());
 
-        return new ReceivedTextMessageResponse(
+        return new ChatMessageResponse(
             message.getMessageId(),
             message.getChatRoomId(),
             message.getTextChannelId(),

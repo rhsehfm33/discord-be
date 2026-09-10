@@ -15,4 +15,5 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.awaitility:awaitility'
 }

@@ -7,7 +7,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
-import discord.chat.message.application.message.RealtimeMessageService;
+import discord.chat.message.application.message.ChatMessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -16,22 +16,20 @@ import lombok.RequiredArgsConstructor;
 public class TextChannelSocketController {
     private static final Logger logger = LoggerFactory.getLogger(TextChannelSocketController.class);
 
-    private final RealtimeMessageService realtimeMessageService;
+    private final ChatMessageService chatMessageService;
 
     @MessageMapping("/sendText")
     public void handleTextMessage(
-        @Valid SendTextMessageRequest request,
+        @Valid ChatMessageRequest request,
         Authentication authentication,
         @Header("simpSessionId") String sessionId
     ) {
         logger.info(
-            "WebSocket message received: user={}, chatRoomId={}, textChannelId={}",
+            "WebSocket message received: user={}, textChannelId={}",
             authentication.getName(),
-            request.getChatRoomId(),
             request.getTextChannelId()
         );
-        realtimeMessageService.send(
-            request.getChatRoomId(),
+        chatMessageService.send(
             request.getTextChannelId(),
             request.getContent(),
             authentication,
