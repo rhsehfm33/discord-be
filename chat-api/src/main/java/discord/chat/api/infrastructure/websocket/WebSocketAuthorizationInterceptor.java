@@ -1,7 +1,11 @@
 package discord.chat.api.infrastructure.websocket;
 
-import java.util.Set;
-
+import discord.chat.api.domain.chat.channel.ChannelAccessService;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.user.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -9,13 +13,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
-import discord.chat.common.infrastructure.user.User;
-import discord.chat.api.interfaces.chat.channel.AccessibleTextChannelResponse;
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -39,7 +38,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             && !"/app/sendText".equals(accessor.getDestination())) {
             throw new IllegalArgumentException("Messages must be sent through /app/sendText");
         } else if (StompCommand.DISCONNECT.equals(command)) {
-            chatSessionRegistry.remove(accessor.getSessionId());
+            chatSessionRegistry.removeSession(accessor.getSessionId());
         }
 
         return message;
@@ -61,7 +60,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             return;
         }
 
-        chatSessionRegistry.remove(accessor.getSessionId());
+        chatSessionRegistry.removeSession(accessor.getSessionId());
     }
 
     private void registerSession(StompHeaderAccessor accessor) {
@@ -70,10 +69,8 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             throw new IllegalStateException("Authenticated WebSocket user is required");
         }
 
-        Set<AccessibleTextChannelResponse> channels = Set.copyOf(
-            channelAccessService.getAccessibleTextChannels(user.getId())
-        );
-        chatSessionRegistry.register(accessor.getSessionId(), channels);
+        List<TextChannel> accessibleChannels = channelAccessService.getAccessibleTextChannels(user.getId());
+        chatSessionRegistry.register(accessor.getSessionId(), accessibleChannels);
     }
 
     private void validateSubscription(StompHeaderAccessor accessor) {

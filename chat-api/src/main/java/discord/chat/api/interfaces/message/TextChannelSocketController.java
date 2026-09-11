@@ -25,11 +25,13 @@ public class TextChannelSocketController {
         @Header("simpSessionId") String sessionId
     ) {
         logger.info(
-            "WebSocket message received: user={}, textChannelId={}",
+            "WebSocket message received: user={}, chatRoomId={}, textChannelId={}",
             authentication.getName(),
+            request.getChatRoomId(),
             request.getTextChannelId()
         );
         chatMessageService.send(
+            request.getChatRoomId(),
             request.getTextChannelId(),
             request.getContent(),
             authentication,

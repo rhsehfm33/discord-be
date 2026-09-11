@@ -1,14 +1,15 @@
 package discord.chat.api.infrastructure.websocket;
 
-import discord.chat.api.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Set;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,18 +31,20 @@ class ChatSessionRegistryTest {
     // Checks that the first session subscribes and the last session unsubscribes.
     @Test
     void manageRoomSubscription() {
-        Set<AccessibleTextChannelResponse> accessibleTextChannels = createAccessibleChannels("room", "channel");
+        List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
 
         chatSessionRegistry.register("first", accessibleTextChannels);
         chatSessionRegistry.register("second", accessibleTextChannels);
 
+        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isTrue();
+        assertThat(chatSessionRegistry.hasChannelAccess("first", "other-room", "channel")).isFalse();
         verify(chatMessageRedisBroker).subscribe("room");
         verify(chatMessageRedisBroker).requireConnection();
 
-        chatSessionRegistry.remove("first");
+        chatSessionRegistry.removeSession("first");
         verify(chatMessageRedisBroker, never()).unsubscribe("room");
 
-        chatSessionRegistry.remove("second");
+        chatSessionRegistry.removeSession("second");
         verify(chatMessageRedisBroker).unsubscribe("room");
     }
 
@@ -58,7 +61,7 @@ class ChatSessionRegistryTest {
     // Checks that a failed new registration keeps the existing session.
     @Test
     void keepExistingSessionOnRegistrationFailure() {
-        Set<AccessibleTextChannelResponse> accessibleTextChannels = createAccessibleChannels("room", "channel");
+        List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
 
         chatSessionRegistry.register("existing", accessibleTextChannels);
         doThrow(new IllegalStateException("Redis unavailable"))
@@ -71,10 +74,15 @@ class ChatSessionRegistryTest {
     }
 
     // Creates channel access for the given room.
-    private Set<AccessibleTextChannelResponse> createAccessibleChannels(
+    private List<TextChannel> createAccessibleChannels(
         String chatRoomId,
         String textChannelId
     ) {
-        return Set.of(new AccessibleTextChannelResponse(chatRoomId, textChannelId));
+        TextChannel textChannel = mock(TextChannel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        when(textChannel.getId()).thenReturn(textChannelId);
+        when(textChannel.getChatRoom()).thenReturn(chatRoom);
+        when(chatRoom.getId()).thenReturn(chatRoomId);
+        return List.of(textChannel);
     }
 }

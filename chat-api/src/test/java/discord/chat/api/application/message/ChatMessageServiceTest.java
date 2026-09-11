@@ -19,7 +19,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -99,7 +98,7 @@ class ChatMessageServiceTest {
     // Checks that a session without channel access cannot save or send messages.
     @Test
     void rejectSessionWithoutChannelAccess() {
-        when(chatSessionRegistry.getAuthorizedChatRoomId("session", "channel")).thenReturn(Optional.empty());
+        when(chatSessionRegistry.hasChannelAccess("session", "room", "channel")).thenReturn(false);
 
         assertThatThrownBy(this::sendMessage).isInstanceOf(AccessDeniedException.class);
 
@@ -111,7 +110,7 @@ class ChatMessageServiceTest {
         storedMessage = new ChatMessage("sender", "room", "channel", "hello");
         InstanceSetter.setField(storedMessage, "id", "64b7a1");
 
-        when(chatSessionRegistry.getAuthorizedChatRoomId("session", "channel")).thenReturn(Optional.of("room"));
+        when(chatSessionRegistry.hasChannelAccess("session", "room", "channel")).thenReturn(true);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(storedMessage);
     }
 
@@ -119,6 +118,6 @@ class ChatMessageServiceTest {
     private void sendMessage() {
         User sendingUser = new User("sender", "Sender", "sender@example.com", null, "image.png");
         var senderAuthentication = new UsernamePasswordAuthenticationToken(sendingUser, null, List.of());
-        chatMessageService.send("channel", "hello", senderAuthentication, "session");
+        chatMessageService.send("room", "channel", "hello", senderAuthentication, "session");
     }
 }

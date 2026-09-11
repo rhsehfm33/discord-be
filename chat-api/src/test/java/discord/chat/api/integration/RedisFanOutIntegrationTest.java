@@ -2,13 +2,14 @@ package discord.chat.api.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.message.ChatRoomMessageDelivery;
-import discord.chat.api.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Value;
@@ -94,8 +95,13 @@ class RedisFanOutIntegrationTest {
         String chatRoomId,
         String textChannelId
     ) {
+        TextChannel textChannel = mock(TextChannel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        when(textChannel.getId()).thenReturn(textChannelId);
+        when(textChannel.getChatRoom()).thenReturn(chatRoom);
+        when(chatRoom.getId()).thenReturn(chatRoomId);
         serverContext.getBean(ChatSessionRegistry.class).register(
-            sessionId, Set.of(new AccessibleTextChannelResponse(chatRoomId, textChannelId))
+            sessionId, java.util.List.of(textChannel)
         );
     }
 

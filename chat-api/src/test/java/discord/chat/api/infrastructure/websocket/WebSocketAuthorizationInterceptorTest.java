@@ -1,7 +1,8 @@
 package discord.chat.api.infrastructure.websocket;
 
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import discord.chat.api.interfaces.chat.channel.AccessibleTextChannelResponse;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.user.User;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,13 @@ class WebSocketAuthorizationInterceptorTest {
         ChannelAccessService channelAccessService = mock(ChannelAccessService.class);
         ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
         var interceptor = new WebSocketAuthorizationInterceptor(channelAccessService, chatSessionRegistry);
-        var accessibleChannel = new AccessibleTextChannelResponse("room", "channel");
-        when(channelAccessService.getAccessibleTextChannels("user")).thenReturn(List.of(accessibleChannel));
+        TextChannel accessibleChannel = mock(TextChannel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        when(accessibleChannel.getId()).thenReturn("channel");
+        when(accessibleChannel.getChatRoom()).thenReturn(chatRoom);
+        when(chatRoom.getId()).thenReturn("room");
+        List<TextChannel> accessibleChannels = List.of(accessibleChannel);
+        when(channelAccessService.getAccessibleTextChannels("user")).thenReturn(accessibleChannels);
         User user = new User("user", "User", "user@example.com", null, null);
         var stompHeaders = StompHeaderAccessor.create(StompCommand.CONNECT);
         stompHeaders.setSessionId("session");
@@ -37,7 +43,7 @@ class WebSocketAuthorizationInterceptorTest {
         interceptor.preSend(message, new ExecutorSubscribableChannel());
 
         verify(channelAccessService).getAccessibleTextChannels("user");
-        verify(chatSessionRegistry).register("session", Set.of(accessibleChannel));
+        verify(chatSessionRegistry).register("session", accessibleChannels);
     }
 
     // Checks that clients cannot send to non-existing destinations.

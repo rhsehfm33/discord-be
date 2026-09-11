@@ -1,96 +1,87 @@
 package discord.chat.api.infrastructure.websocket;
 
-import discord.chat.api.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class ChatSessionRegistry {
     private final ChatMessageRedisBroker redisBroker;
-    private final Map<String, Map<String, String>> sessionToChannels = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> chatRoomIdToSessions = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> chatRoomToChannels = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> listenerToChatRooms = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> chatRoomToListeners = new ConcurrentHashMap<>();
 
-    public synchronized void register(
-        String sessionId,
-        Set<AccessibleTextChannelResponse> accessibleChannels
-    ) {
-        if (sessionToChannels.containsKey(sessionId)) {
+    public synchronized void register(String sessionId, List<TextChannel> accessibleChannels) {
+        if (listenerToChatRooms.containsKey(sessionId)) {
             return;
         }
-        Map<String, String> channels = accessibleChannels.stream().collect(Collectors.toUnmodifiableMap(
-            AccessibleTextChannelResponse::textChannelId, AccessibleTextChannelResponse::chatRoomId
-        ));
-        Set<String> registeredRooms = new HashSet<>();
-        try {
-            for (String chatRoomId : Set.copyOf(channels.values())) {
-                Set<String> roomSessions = chatRoomIdToSessions.computeIfAbsent(
-                    chatRoomId, ignored -> ConcurrentHashMap.newKeySet()
-                );
-                if (roomSessions.isEmpty()) {
+        listenerToChatRooms.put(sessionId, ConcurrentHashMap.newKeySet());
+
+        for (TextChannel textChannel : accessibleChannels) {
+            String textChannelId = textChannel.getId();
+            String chatRoomId = textChannel.getChatRoom().getId();
+
+            try {
+                if (!chatRoomToListeners.containsKey(chatRoomId)) {
                     redisBroker.subscribe(chatRoomId);
+                    chatRoomToListeners.put(chatRoomId, ConcurrentHashMap.newKeySet());
+                    chatRoomToChannels.put(chatRoomId, ConcurrentHashMap.newKeySet());
                 } else {
                     redisBroker.requireConnection();
                 }
-                roomSessions.add(sessionId);
-                registeredRooms.add(chatRoomId);
+
+                chatRoomToChannels.get(chatRoomId).add(textChannelId);
+                listenerToChatRooms.get(sessionId).add(chatRoomId);
+                chatRoomToListeners.get(chatRoomId).add(sessionId);
+            } catch (RuntimeException exception) {
+                removeSession(sessionId);
+                throw exception;
             }
-            sessionToChannels.put(sessionId, channels);
-        } catch (RuntimeException exception) {
-            removeFromRooms(sessionId, registeredRooms);
-            throw exception;
         }
     }
 
-    public Optional<String> getAuthorizedChatRoomId(String sessionId, String textChannelId) {
-        Map<String, String> channels = sessionToChannels.get(sessionId);
-        if (channels == null) {
-            return Optional.empty();
-        }
-
-        String chatRoomId = channels.get(textChannelId);
-        return Optional.ofNullable(chatRoomId);
+    public synchronized boolean hasChannelAccess(String sessionId, String chatRoomId, String textChannelId) {
+        return listenerToChatRooms.containsKey(sessionId)
+                && listenerToChatRooms.get(sessionId).contains(chatRoomId)
+                && chatRoomToChannels.containsKey(chatRoomId)
+                && chatRoomToChannels.get(chatRoomId).contains(textChannelId);
     }
 
-    public synchronized void remove(String sessionId) {
-        Map<String, String> channels = sessionToChannels.remove(sessionId);
-        if (channels != null) {
-            removeFromRooms(sessionId, Set.copyOf(channels.values()));
+    public synchronized void removeSession(String sessionId) {
+        Set<String> chatRoomIds = listenerToChatRooms.remove(sessionId);
+        if (chatRoomIds == null) {
+            return;
         }
-    }
-
-    private void removeFromRooms(String sessionId, Set<String> chatRoomIds) {
         for (String chatRoomId : chatRoomIds) {
-            Set<String> roomSessions = chatRoomIdToSessions.get(chatRoomId);
-            roomSessions.remove(sessionId);
-            if (roomSessions.isEmpty()) {
-                chatRoomIdToSessions.remove(chatRoomId);
+            chatRoomToListeners.get(chatRoomId).remove(sessionId);
+            if (chatRoomToListeners.get(chatRoomId).isEmpty()) {
+                chatRoomToListeners.remove(chatRoomId);
+                chatRoomToChannels.remove(chatRoomId);
                 redisBroker.unsubscribe(chatRoomId);
             }
         }
     }
 
-    @EventListener
-    public void onDisconnect(SessionDisconnectEvent event) {
-        remove(event.getSessionId());
-    }
-
     public synchronized Set<String> getSessionIds(String chatRoomId) {
-        Set<String> sessionIds = chatRoomIdToSessions.get(chatRoomId);
+        Set<String> sessionIds = chatRoomToListeners.get(chatRoomId);
         if (sessionIds == null) {
             return Set.of();
         }
 
         return Set.copyOf(sessionIds);
+    }
+
+    @EventListener
+    public void onDisconnect(SessionDisconnectEvent event) {
+        removeSession(event.getSessionId());
     }
 }

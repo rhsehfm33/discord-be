@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ChatMessageRequest {
     @NotBlank
+    private String chatRoomId;
+
+    @NotBlank
     private String textChannelId;
 
     @NotBlank

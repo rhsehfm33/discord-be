@@ -25,18 +25,24 @@ public class ChatMessageService {
     private final ChatMessageRedisBroker redisBroker;
 
     public void send(
+        String chatRoomId,
         String textChannelId,
         String content,
         Authentication authentication,
         String sessionId
     ) {
         User sender = (User) authentication.getPrincipal();
-        String authorizedChatRoomId = chatSessionRegistry
-            .getAuthorizedChatRoomId(sessionId, textChannelId)
-            .orElseThrow(() -> new AccessDeniedException("No access to text channel"));
+        boolean hasAccess = chatSessionRegistry.hasChannelAccess(
+            sessionId,
+            chatRoomId,
+            textChannelId
+        );
+        if (!hasAccess) {
+            throw new AccessDeniedException("No access to text channel");
+        }
 
         ChatMessage message = new ChatMessage(
-            sender.getId(), authorizedChatRoomId, textChannelId, content
+            sender.getId(), chatRoomId, textChannelId, content
         );
         ChatMessage storedMessage = chatMessageRepository.save(message);
 
@@ -55,7 +61,7 @@ public class ChatMessageService {
             log.error("Message stored but Redis publication failed: messageId={}",
                 storedMessage.getId(), exception);
             MessagePublishErrorResponse error = new MessagePublishErrorResponse(
-                "MESSAGE_PUBLISH_FAILED", storedMessage.getId(), authorizedChatRoomId,
+                "MESSAGE_PUBLISH_FAILED", storedMessage.getId(), chatRoomId,
                 textChannelId, "메시지는 저장됐지만 실시간 전달에 실패했습니다."
             );
             sessionMessageSender.send(sessionId, "/channel/errors", error);

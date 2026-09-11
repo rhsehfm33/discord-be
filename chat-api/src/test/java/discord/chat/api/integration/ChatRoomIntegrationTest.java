@@ -71,7 +71,8 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         String chatRoomId = chatRoomService.create(owner, request).getId();
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
         assertThat(channelAccessService.getAccessibleTextChannels(owner.getName()))
-            .extracting("chatRoomId").containsExactly(chatRoomId);
+            .extracting(channel -> channel.getChatRoom().getId())
+            .containsExactly(chatRoomId);
 
         Authentication member = authenticate("member");
         assertThat(channelAccessService.getAccessibleTextChannels(member.getName())).isEmpty();
@@ -79,7 +80,8 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
         assertThat(channelAccessService.getAccessibleTextChannels(member.getName()))
-            .extracting("chatRoomId").containsExactly(chatRoomId);
+            .extracting(channel -> channel.getChatRoom().getId())
+            .containsExactly(chatRoomId);
         assertThat(chatRoomParticipantService.getParticipants(member, chatRoomId))
             .extracting("nickName").containsExactlyInAnyOrder("owner", "member");
 
