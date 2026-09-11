@@ -1,5 +1,7 @@
 package discord.chat.api.infrastructure.security;
 
+import java.io.IOException;
+
 import discord.chat.common.infrastructure.user.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,31 +15,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-
 @Component
 public class PostJwtAuthenticationFilter extends OncePerRequestFilter {
-
     @Override
     protected void doFilterInternal(
         @NonNull HttpServletRequest request,
         @NonNull HttpServletResponse response,
         @NonNull FilterChain filterChain
-    )
-            throws ServletException, IOException {
+    ) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication != null
             && authentication.isAuthenticated()
             && authentication.getPrincipal() instanceof Jwt jwt) {
-            Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                toUser(jwt),
-                authentication.getCredentials(),
-                authentication.getAuthorities()
+            Authentication userAuthentication = new UsernamePasswordAuthenticationToken(
+                toUser(jwt), authentication.getCredentials(), authentication.getAuthorities()
             );
-            SecurityContextHolder.getContext().setAuthentication(newAuth);
+            SecurityContextHolder.getContext().setAuthentication(userAuthentication);
         }
-
         filterChain.doFilter(request, response);
     }
 
@@ -46,7 +40,7 @@ public class PostJwtAuthenticationFilter extends OncePerRequestFilter {
             jwt.getSubject(),
             jwt.getClaimAsString(JwtClaimNames.NICK_NAME),
             jwt.getClaimAsString(JwtClaimNames.EMAIL),
-            null,   // password should not be exposed
+            null,
             jwt.getClaimAsString(JwtClaimNames.IMAGE_URL)
         );
     }

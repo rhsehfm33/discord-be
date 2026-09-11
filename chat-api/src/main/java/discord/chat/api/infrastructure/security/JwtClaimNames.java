@@ -1,9 +1,5 @@
 package discord.chat.api.infrastructure.security;
 
-/**
- * Claim names carried by the self-contained access token, shared by the issuer and every
- * resource server that has to rebuild the principal from it.
- */
 public final class JwtClaimNames {
     public static final String EMAIL = "email";
     public static final String NICK_NAME = "nick_name";
@@ -12,6 +8,5 @@ public final class JwtClaimNames {
     private JwtClaimNames() {
     }
 }
-
 
 

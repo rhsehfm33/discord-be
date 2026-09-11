@@ -1,5 +1,4 @@
 rootProject.name = 'discord'
+include 'user-api'
 include 'chat-api'
-include 'chat-message'
 include 'chat-common'
-
