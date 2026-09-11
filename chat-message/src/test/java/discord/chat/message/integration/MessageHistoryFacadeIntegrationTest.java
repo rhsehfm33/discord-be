@@ -1,13 +1,14 @@
 package discord.chat.message.integration;
 
 import discord.chat.message.application.message.MessageHistoryFacade;
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.message.infrastructure.client.chatapi.ChatApiClient;
 import discord.chat.message.infrastructure.client.chatapi.InternalUserProfileResponse;
 import discord.chat.message.infrastructure.message.ChatMessage;
 import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.interfaces.message.ChatMessageResponse;
 import discord.chat.message.support.BaseIntegrationTest;
+import discord.chat.message.domain.chat.channel.ChannelAccessService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -30,6 +31,9 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
     @MockBean
     private ChatApiClient chatApiClient;
 
+    @MockBean
+    private ChannelAccessService channelAccessService;
+
     // Checks that message history includes sender profiles after checking access.
     @Test
     void getMessagesAuthorizesAndAddsSenderProfiles() throws Exception {
@@ -37,7 +41,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
             new ChatMessage("sender", "room", "channel", "hello"),
             new ChatMessage("missing", "room", "channel", "world")
         ));
-        when(chatApiClient.getAccessibleTextChannels("user"))
+        when(channelAccessService.getAccessibleTextChannels("user"))
             .thenReturn(List.of(new AccessibleTextChannelResponse("room", "channel")));
         when(chatApiClient.getUserProfiles(Set.of("sender", "missing")))
             .thenReturn(List.of(new InternalUserProfileResponse("sender", "Sender", "image.png")));
@@ -60,7 +64,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
     // Checks that users cannot read messages from channels they cannot access.
     @Test
     void getMessagesRejectsUnauthorizedChannels() {
-        when(chatApiClient.getAccessibleTextChannels("user")).thenReturn(List.of());
+        when(channelAccessService.getAccessibleTextChannels("user")).thenReturn(List.of());
 
         assertThatThrownBy(() -> messageHistoryFacade.getMessages(
             "user", "room", "channel", null, 50

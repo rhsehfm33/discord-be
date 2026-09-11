@@ -11,18 +11,20 @@ import org.springframework.stereotype.Service;
 
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.message.domain.message.MessageHistoryService;
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.message.infrastructure.client.chatapi.ChatApiClient;
 import discord.chat.message.infrastructure.client.chatapi.InternalUserProfileResponse;
 import discord.chat.message.interfaces.message.MessageResponse;
 import discord.chat.message.interfaces.message.MessageSenderResponse;
 import discord.chat.message.interfaces.message.ChatMessageResponse;
+import discord.chat.message.domain.chat.channel.ChannelAccessService;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class MessageHistoryFacade {
     private final ChatApiClient chatApiClient;
+    private final ChannelAccessService channelAccessService;
     private final MessageHistoryService messageHistoryService;
 
     public List<ChatMessageResponse> getMessages(
@@ -54,7 +56,7 @@ public class MessageHistoryFacade {
     }
 
     private void verifyChannelAccess(String userId, String chatRoomId, String textChannelId) {
-        boolean hasAccess = chatApiClient.getAccessibleTextChannels(userId).stream()
+        boolean hasAccess = channelAccessService.getAccessibleTextChannels(userId).stream()
             .anyMatch(channel -> matches(channel, chatRoomId, textChannelId));
         if (!hasAccess) {
             throw new AccessDeniedException("No access to text channel");

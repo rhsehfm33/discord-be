@@ -1,6 +1,6 @@
 package discord.chat.message.infrastructure.websocket;
 
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.message.infrastructure.redis.ChatMessageRedisBroker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

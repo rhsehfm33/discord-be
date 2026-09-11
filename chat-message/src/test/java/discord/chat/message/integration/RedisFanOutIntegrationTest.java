@@ -2,7 +2,7 @@ package discord.chat.message.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.message.application.message.ChatRoomMessageDelivery;
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.message.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.message.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.message.infrastructure.websocket.ChatSessionRegistry;

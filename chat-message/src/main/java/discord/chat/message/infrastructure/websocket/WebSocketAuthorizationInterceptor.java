@@ -13,8 +13,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 import discord.chat.common.infrastructure.user.User;
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
-import discord.chat.message.infrastructure.client.chatapi.ChatApiClient;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
+import discord.chat.message.domain.chat.channel.ChannelAccessService;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PERSONAL_CHANNEL_DESTINATION = "/user/channel";
 
-    private final ChatApiClient chatApiClient;
+    private final ChannelAccessService channelAccessService;
     private final ChatSessionRegistry chatSessionRegistry;
 
     @Override
@@ -71,7 +71,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         }
 
         Set<AccessibleTextChannelResponse> channels = Set.copyOf(
-            chatApiClient.getAccessibleTextChannels(user.getId())
+            channelAccessService.getAccessibleTextChannels(user.getId())
         );
         chatSessionRegistry.register(accessor.getSessionId(), channels);
     }

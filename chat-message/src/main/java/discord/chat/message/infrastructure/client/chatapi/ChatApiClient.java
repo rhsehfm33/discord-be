@@ -28,21 +28,6 @@ public class ChatApiClient {
         this.chatApiBaseUrl = chatApiBaseUrl;
     }
 
-    public List<AccessibleTextChannelResponse> getAccessibleTextChannels(String userId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(tokenProvider.getAccessToken());
-
-        AccessibleTextChannelResponse[] channels = restTemplate.exchange(
-            chatApiBaseUrl + "/internal/users/{userId}/text-channels",
-            HttpMethod.GET,
-            new HttpEntity<>(headers),
-            AccessibleTextChannelResponse[].class,
-            userId
-        ).getBody();
-
-        return channels == null ? List.of() : Arrays.asList(channels);
-    }
-
     public List<InternalUserProfileResponse> getUserProfiles(Collection<String> userIds) {
         if (userIds.isEmpty()) {
             return List.of();

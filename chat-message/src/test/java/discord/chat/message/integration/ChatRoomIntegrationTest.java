@@ -12,6 +12,7 @@ import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRep
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
 import discord.chat.message.domain.chat.channel.TextChannelService;
+import discord.chat.message.domain.chat.channel.ChannelAccessService;
 import discord.chat.message.domain.chat.room.ChatRoomParticipantService;
 import discord.chat.message.domain.chat.room.ChatRoomService;
 import discord.chat.message.domain.chat.subscription.ChatSubscriptionService;
@@ -19,9 +20,11 @@ import discord.chat.message.interfaces.chat.channel.TextChannelRequest;
 import discord.chat.message.interfaces.chat.room.ChatRoomRequest;
 import discord.chat.message.support.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,6 +42,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
     @Autowired private ChatRoomParticipantService chatRoomParticipantService;
     @Autowired private ChatSubscriptionService chatSubscriptionService;
     @Autowired private TextChannelService textChannelService;
+    @Autowired private ChannelAccessService channelAccessService;
     @Autowired private UserMongoRepository userMongoRepository;
     @Autowired private ChatRoomMongoRepository chatRoomMongoRepository;
     @Autowired private ChatSubscriptMongoRepository chatSubscriptMongoRepository;
@@ -55,11 +59,16 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         );
         String chatRoomId = chatRoomService.create(owner, request).getId();
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
+        assertThat(channelAccessService.getAccessibleTextChannels(owner.getName()))
+            .extracting("chatRoomId").containsExactly(chatRoomId);
 
         Authentication member = authenticate("member");
+        assertThat(channelAccessService.getAccessibleTextChannels(member.getName())).isEmpty();
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
+        assertThat(channelAccessService.getAccessibleTextChannels(member.getName()))
+            .extracting("chatRoomId").containsExactly(chatRoomId);
         assertThat(chatRoomParticipantService.getParticipants(member, chatRoomId))
             .extracting("nickName").containsExactlyInAnyOrder("owner", "member");
 
@@ -72,6 +81,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         SecurityContextHolder.getContext().setAuthentication(member);
         chatSubscriptionService.unsubscribe(member, chatRoomId);
+        assertThat(channelAccessService.getAccessibleTextChannels(member.getName())).isEmpty();
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
 
@@ -117,6 +127,21 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
     void rejectsAnonymousRoomRequests() throws Exception {
         SecurityContextHolder.clearContext();
         mockMvc.perform(get("/chat-rooms")).andExpect(status().isUnauthorized());
+    }
+
+    // Checks that a removed user cannot resolve channel access from a previously issued token.
+    @Test
+    void rejectsDeletedUsersWhenResolvingChannelAccess() {
+        Authentication user = authenticate("removed");
+        userMongoRepository.deleteById(user.getName());
+        assertThatThrownBy(() -> channelAccessService.getAccessibleTextChannels(user.getName()))
+            .isInstanceOf(AccessDeniedException.class);
+    }
+
+    // Clears service authentication even when a test assertion fails.
+    @AfterEach
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
     }
 
     // Creates a persisted user and installs domain authentication for secured service calls.

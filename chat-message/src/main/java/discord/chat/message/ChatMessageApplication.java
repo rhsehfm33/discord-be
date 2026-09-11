@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
     scanBasePackages = {"discord.chat.message", "discord.chat.common"},
     exclude = UserDetailsServiceAutoConfiguration.class
 )
-@EnableMongoRepositories(basePackages = "discord.chat.message.infrastructure")
+@EnableMongoRepositories(basePackages = {"discord.chat.message.infrastructure", "discord.chat.common.infrastructure"})
 @EntityScan(basePackages = "discord.chat.common.infrastructure")
 public class ChatMessageApplication {
 

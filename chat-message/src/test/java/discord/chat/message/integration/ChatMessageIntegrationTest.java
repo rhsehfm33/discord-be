@@ -2,7 +2,7 @@ package discord.chat.message.integration;
 
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.message.application.message.ChatMessageService;
-import discord.chat.message.infrastructure.client.chatapi.AccessibleTextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.AccessibleTextChannelResponse;
 import discord.chat.message.infrastructure.message.ChatMessageRepository;
 import discord.chat.message.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.message.infrastructure.websocket.ChatSessionRegistry;
