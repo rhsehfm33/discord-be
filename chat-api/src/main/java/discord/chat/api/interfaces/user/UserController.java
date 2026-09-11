@@ -1,7 +1,5 @@
 package discord.chat.api.interfaces.user;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -15,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.api.domain.user.UserService;
-import discord.chat.common.exception.CustomAuthorizationError;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
@@ -35,13 +32,6 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public UserResponse getMyUserInfo(Authentication authentication) {
         return userService.getMyUserInfo(authentication);
-    }
-
-    @GetMapping("/chat-rooms/{chatRoomId}/users")
-    public List<UserResponse> getParticipants(
-        Authentication authentication, @PathVariable String chatRoomId
-    ) throws CustomAuthorizationError, CustomEntityNotFoundException {
-        return userService.getParticipants(authentication, chatRoomId);
     }
 
     @PatchMapping("/users/{id}")
