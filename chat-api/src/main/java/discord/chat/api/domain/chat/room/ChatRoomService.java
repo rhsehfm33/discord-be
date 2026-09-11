@@ -1,9 +1,7 @@
 package discord.chat.api.domain.chat.room;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -25,6 +23,7 @@ import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
 import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.util.RandomImageUrlGenerator;
 import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
 import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
@@ -39,18 +38,9 @@ public class ChatRoomService {
     private final TextChannelMongoRepository textChannelMongoRepository;
     private final MongoTemplate mongoTemplate;
 
-    private final Random random = new Random();
-    List<String> dummyImages = new ArrayList<>(List.of(
-        "https://i.pinimg.com/originals/a5/98/73/a598732adbce5c5f5c276474a5525330.jpg",
-        "https://i.pinimg.com/474x/25/0f/2d/250f2d083b89d3b6585f67729602daaf.jpg",
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3Vd_kqZn53ok20t0tVuAukGAHOzVLWvNgKw&s",
-        "https://i.pinimg.com/564x/31/f1/23/31f1231af69beb6617062dbf3373131c.jpg"
-    ));
-
     public ChatRoomResponse create(Authentication authentication, ChatRoomRequest chatRoomRequest) {
-        // TODO: Apply user registered profile image
         if (chatRoomRequest.getImage() == null) {
-            chatRoomRequest.setImage(dummyImages.get(random.nextInt(dummyImages.size())));
+            chatRoomRequest.setImage(RandomImageUrlGenerator.generate());
         }
         User owner = (User) authentication.getPrincipal();
         ChatRoom newChatRoom = new ChatRoom(

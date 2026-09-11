@@ -5,6 +5,7 @@ import discord.user.api.interfaces.user.UserResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
+import discord.chat.common.util.RandomImageUrlGenerator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,8 +42,12 @@ public class UserService implements UserDetailsService {
 
     public UserResponse createdUser(UserRequest dto) {
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
+        String imageUrl = dto.getImageUrl();
+        if (imageUrl == null) {
+            imageUrl = RandomImageUrlGenerator.generate();
+        }
         User user = userMongoRepository.save(
-            new User(dto.getNickName(), dto.getEmail(), dto.getPassword(), dto.getImageUrl())
+            new User(dto.getNickName(), dto.getEmail(), dto.getPassword(), imageUrl)
         );
         return new UserResponse(user);
     }
