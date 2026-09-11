@@ -1,4 +1,4 @@
-package discord.chat.api.domain.friend.friendship;
+package discord.chat.message.domain.friend.friendship;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,8 +22,8 @@ import discord.chat.common.infrastructure.user.UserMongoRepository;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
-import discord.chat.api.interfaces.friend.friendship.FriendshipRequest;
-import discord.chat.api.interfaces.friend.friendship.FriendshipResponse;
+import discord.chat.message.interfaces.friend.friendship.FriendshipRequest;
+import discord.chat.message.interfaces.friend.friendship.FriendshipResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service

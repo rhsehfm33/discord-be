@@ -1,4 +1,4 @@
-package discord.chat.api.domain.friend.invitation;
+package discord.chat.message.domain.friend.invitation;
 
 import static discord.chat.common.infrastructure.friend.friendship.FriendStatus.*;
 
@@ -24,7 +24,7 @@ import discord.chat.common.infrastructure.friend.invitation.FriendInvitationMong
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
 import discord.chat.common.exception.CustomEntityNotFoundException;
-import discord.chat.api.interfaces.friend.invitation.FriendInvitationResponse;
+import discord.chat.message.interfaces.friend.invitation.FriendInvitationResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service

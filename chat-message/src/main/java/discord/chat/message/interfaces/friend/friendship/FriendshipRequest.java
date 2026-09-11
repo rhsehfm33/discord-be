@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.friend.friendship;
+package discord.chat.message.interfaces.friend.friendship;
 
 import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 import lombok.AllArgsConstructor;

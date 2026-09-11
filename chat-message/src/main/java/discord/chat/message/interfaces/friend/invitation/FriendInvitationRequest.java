@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.friend.invitation;
+package discord.chat.message.interfaces.friend.invitation;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

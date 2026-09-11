@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.user;
+package discord.chat.message.interfaces.friend;
 
 import discord.chat.common.infrastructure.user.User;
 import lombok.Getter;

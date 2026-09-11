@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.friend.friendship;
+package discord.chat.message.interfaces.friend.friendship;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
-import discord.chat.api.domain.friend.friendship.FriendshipService;
+import discord.chat.message.domain.friend.friendship.FriendshipService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;

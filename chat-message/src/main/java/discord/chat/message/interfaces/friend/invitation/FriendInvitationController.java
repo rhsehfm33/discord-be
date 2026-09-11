@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.friend.invitation;
+package discord.chat.message.interfaces.friend.invitation;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import discord.chat.api.domain.friend.invitation.FriendInvitationService;
+import discord.chat.message.domain.friend.invitation.FriendInvitationService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
