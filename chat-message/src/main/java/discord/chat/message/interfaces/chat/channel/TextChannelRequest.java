@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.chat.channel;
+package discord.chat.message.interfaces.chat.channel;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

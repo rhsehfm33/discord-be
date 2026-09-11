@@ -1,4 +1,4 @@
-package discord.chat.api.domain.chat.channel;
+package discord.chat.message.domain.chat.channel;
 
 import java.util.List;
 
@@ -14,8 +14,8 @@ import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
 import discord.chat.common.infrastructure.user.User;
-import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
-import discord.chat.api.interfaces.chat.channel.TextChannelResponse;
+import discord.chat.message.interfaces.chat.channel.TextChannelRequest;
+import discord.chat.message.interfaces.chat.channel.TextChannelResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
 

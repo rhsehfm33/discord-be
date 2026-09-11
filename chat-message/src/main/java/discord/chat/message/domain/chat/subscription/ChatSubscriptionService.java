@@ -1,4 +1,4 @@
-package discord.chat.api.domain.chat.subscription;
+package discord.chat.message.domain.chat.subscription;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -11,7 +11,7 @@ import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
 import discord.chat.common.infrastructure.user.User;
-import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
+import discord.chat.message.interfaces.chat.room.ChatRoomResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomResourceConflictException;
 

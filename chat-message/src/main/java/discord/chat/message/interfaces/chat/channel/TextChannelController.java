@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.chat.channel;
+package discord.chat.message.interfaces.chat.channel;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import discord.chat.api.domain.chat.channel.TextChannelService;
+import discord.chat.message.domain.chat.channel.TextChannelService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
 

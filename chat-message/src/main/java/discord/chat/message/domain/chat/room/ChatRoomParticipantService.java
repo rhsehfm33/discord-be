@@ -1,7 +1,7 @@
-package discord.chat.api.domain.chat.room;
+package discord.chat.message.domain.chat.room;
 
 import java.util.List;
-import discord.chat.api.interfaces.user.UserResponse;
+import discord.chat.message.interfaces.chat.room.ChatRoomParticipantResponse;
 import discord.chat.common.exception.CustomAuthorizationError;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
@@ -31,7 +31,7 @@ public class ChatRoomParticipantService {
     private final ChatSubscriptMongoRepository chatSubscriptMongoRepository;
 
     @PreAuthorize("isAuthenticated()")
-    public List<UserResponse> getParticipants(Authentication authentication, String chatRoomId) throws
+    public List<ChatRoomParticipantResponse> getParticipants(Authentication authentication, String chatRoomId) throws
         CustomAuthorizationError, CustomEntityNotFoundException {
         User user = (User) authentication.getPrincipal();
         ChatRoom chatRoom = chatRoomMongoRepository.findById(chatRoomId).orElseThrow(
@@ -52,8 +52,8 @@ public class ChatRoomParticipantService {
             aggregation, "chat_subscriptions", ChatSubscription.class
         );
 
-        List<UserResponse> userResponses = chatSubscriptions.getMappedResults().stream()
-            .map(chatSubscription -> UserResponse
+        List<ChatRoomParticipantResponse> userResponses = chatSubscriptions.getMappedResults().stream()
+            .map(chatSubscription -> ChatRoomParticipantResponse
                 .builder()
                 .id(chatSubscription.getUser().getId())
                 .nickName(chatSubscription.getUser().getNickName())

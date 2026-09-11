@@ -1,4 +1,4 @@
-package discord.chat.api.domain.chat.room;
+package discord.chat.message.domain.chat.room;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +25,8 @@ import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
 import discord.chat.common.infrastructure.user.User;
-import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
-import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
+import discord.chat.message.interfaces.chat.room.ChatRoomRequest;
+import discord.chat.message.interfaces.chat.room.ChatRoomResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 
 @Service

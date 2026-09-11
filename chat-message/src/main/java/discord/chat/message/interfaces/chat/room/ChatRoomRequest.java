@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.chat.room;
+package discord.chat.message.interfaces.chat.room;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,4 +1,4 @@
-package discord.chat.api.interfaces.chat.room;
+package discord.chat.message.interfaces.chat.room;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import discord.chat.api.domain.chat.room.ChatRoomService;
+import discord.chat.message.domain.chat.room.ChatRoomService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 
 @RestController
