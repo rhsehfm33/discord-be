@@ -9,14 +9,14 @@ import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.api.domain.message.MessageHistoryService;
-import discord.chat.api.infrastructure.client.userapi.UserApiClient;
-import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
-import discord.chat.api.interfaces.message.MessageResponse;
-import discord.chat.api.interfaces.message.MessageSenderResponse;
-import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
+import discord.chat.api.domain.message.MessageHistoryService;
+import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
+import discord.chat.api.infrastructure.client.userapi.UserApiClient;
+import discord.chat.api.infrastructure.message.ChatMessage;
+import discord.chat.api.interfaces.message.ChatMessageResponse;
+import discord.chat.api.interfaces.message.MessageSenderResponse;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -35,14 +35,14 @@ public class MessageHistoryFacade {
     ) throws CustomIllegalArgumentException {
         verifyChannelAccess(userId, chatRoomId, textChannelId);
 
-        List<MessageResponse> messages = messageHistoryService.getMessages(
+        List<ChatMessage> messages = messageHistoryService.getMessages(
             chatRoomId,
             textChannelId,
             beforeMessageId,
             limit
         );
         Set<String> senderIds = messages.stream()
-            .map(MessageResponse::getSenderId)
+            .map(ChatMessage::getSenderId)
             .collect(Collectors.toSet());
         Map<String, InternalUserProfileResponse> profilesById = userApiClient
             .getUserProfiles(senderIds)
@@ -62,15 +62,18 @@ public class MessageHistoryFacade {
     }
 
     private ChatMessageResponse toResponse(
-        MessageResponse message,
+        ChatMessage message,
         InternalUserProfileResponse profile
     ) {
-        MessageSenderResponse sender = profile == null
-            ? new MessageSenderResponse(message.getSenderId(), "Unknown", null)
-            : new MessageSenderResponse(profile.id(), profile.nickName(), profile.imageUrl());
+        MessageSenderResponse sender;
+        if (profile == null) {
+            sender = new MessageSenderResponse(message.getSenderId(), "Unknown", null);
+        } else {
+            sender = new MessageSenderResponse(profile.id(), profile.nickName(), profile.imageUrl());
+        }
 
         return new ChatMessageResponse(
-            message.getMessageId(),
+            message.getId(),
             message.getChatRoomId(),
             message.getTextChannelId(),
             sender,

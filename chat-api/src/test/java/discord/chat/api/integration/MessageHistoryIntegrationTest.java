@@ -4,7 +4,7 @@ import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.api.domain.message.MessageHistoryService;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
-import discord.chat.api.interfaces.message.MessageResponse;
+import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.support.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,20 +34,20 @@ class MessageHistoryIntegrationTest extends BaseIntegrationTest {
             new ChatMessage("sender", "room", "other-channel", "not-included")
         );
 
-        List<MessageResponse> firstPageMessages = messageHistoryService.getMessages(
+        List<ChatMessage> firstPageMessages = messageHistoryService.getMessages(
             "room", "channel", null, 50
         );
-        List<MessageResponse> secondPageMessages = messageHistoryService.getMessages(
-            "room", "channel", firstPageMessages.get(firstPageMessages.size() - 1).getMessageId(), 50
+        List<ChatMessage> secondPageMessages = messageHistoryService.getMessages(
+            "room", "channel", firstPageMessages.get(firstPageMessages.size() - 1).getId(), 50
         );
 
         assertThat(firstPageMessages).hasSize(50);
         assertThat(secondPageMessages).hasSize(5);
         assertThat(firstPageMessages.get(0).getContent()).isEqualTo("message-54");
         assertThat(secondPageMessages.get(secondPageMessages.size() - 1).getContent()).isEqualTo("message-0");
-        assertThat(firstPageMessages).extracting(MessageResponse::getMessageId)
+        assertThat(firstPageMessages).extracting(ChatMessage::getId)
             .doesNotContainAnyElementsOf(
-                secondPageMessages.stream().map(MessageResponse::getMessageId).toList()
+                secondPageMessages.stream().map(ChatMessage::getId).toList()
             );
     }
 

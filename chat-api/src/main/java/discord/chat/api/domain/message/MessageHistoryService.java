@@ -1,23 +1,23 @@
 package discord.chat.api.domain.message;
 
-import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.api.infrastructure.message.ChatMessage;
-import discord.chat.api.infrastructure.message.ChatMessageRepository;
-import discord.chat.api.interfaces.message.MessageResponse;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import discord.chat.api.infrastructure.message.ChatMessage;
+import discord.chat.api.infrastructure.message.ChatMessageRepository;
+import discord.chat.common.exception.CustomIllegalArgumentException;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class MessageHistoryService {
     private final ChatMessageRepository chatMessageRepository;
 
-    public List<MessageResponse> getMessages(
+    public List<ChatMessage> getMessages(
         String chatRoomId,
         String textChannelId,
         String beforeMessageId,
@@ -37,19 +37,19 @@ public class MessageHistoryService {
         }
 
         PageRequest page = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
-        List<ChatMessage> messages = beforeMessageId == null
-            ? chatMessageRepository.findByChatRoomIdAndTextChannelId(
+        if (beforeMessageId == null) {
+            return chatMessageRepository.findByChatRoomIdAndTextChannelId(
                 chatRoomId,
                 textChannelId,
-                page
-            )
-            : chatMessageRepository.findMessagesBefore(
-                chatRoomId,
-                textChannelId,
-                new ObjectId(beforeMessageId),
                 page
             );
+        }
 
-        return messages.stream().map(MessageResponse::new).toList();
+        return chatMessageRepository.findMessagesBefore(
+            chatRoomId,
+            textChannelId,
+            new ObjectId(beforeMessageId),
+            page
+        );
     }
 }
