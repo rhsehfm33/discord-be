@@ -40,8 +40,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
             new ChatMessage("sender", "room", "channel", "hello"),
             new ChatMessage("missing", "room", "channel", "world")
         ));
-        when(channelAccessService.getAccessibleTextChannels("user"))
-            .thenReturn(java.util.Map.of("channel", "room"));
+        when(channelAccessService.hasTextChannelAccess("user", "room", "channel")).thenReturn(true);
         when(userApiClient.getUserProfiles(Set.of("sender", "missing")))
             .thenReturn(List.of(new InternalUserProfileResponse("sender", "Sender", "image.png")));
 
@@ -63,7 +62,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
     // Checks that users cannot read messages from channels they cannot access.
     @Test
     void getMessagesRejectsUnauthorizedChannels() {
-        when(channelAccessService.getAccessibleTextChannels("user")).thenReturn(java.util.Map.of());
+        when(channelAccessService.hasTextChannelAccess("user", "room", "channel")).thenReturn(false);
 
         assertThatThrownBy(() -> messageHistoryFacade.getMessages(
             "user", "room", "channel", null, 50

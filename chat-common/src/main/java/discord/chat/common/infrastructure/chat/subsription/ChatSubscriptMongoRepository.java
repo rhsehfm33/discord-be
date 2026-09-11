@@ -9,6 +9,8 @@ import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.user.User;
 
 public interface ChatSubscriptMongoRepository extends MongoRepository<ChatSubscription, String> {
+    boolean existsByUserIdAndChatRoomId(String userId, String chatRoomId);
+
     List<ChatSubscription> findAllByUser(User user);
 
     Optional<ChatSubscription> findByUserAndChatRoom(User user, ChatRoom chatRoom);

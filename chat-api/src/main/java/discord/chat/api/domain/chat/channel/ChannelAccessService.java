@@ -22,6 +22,18 @@ public class ChannelAccessService {
     private final ChatSubscriptMongoRepository chatSubscriptRepository;
     private final TextChannelMongoRepository textChannelRepository;
 
+    public boolean hasTextChannelAccess(String userId, String chatRoomId, String textChannelId) {
+        boolean isUserSubscribed = chatSubscriptRepository.existsByUserIdAndChatRoomId(userId, chatRoomId);
+        if (!isUserSubscribed) {
+            return false;
+        }
+        boolean isTextChannelExist = textChannelRepository.existsByIdAndChatRoomId(
+                textChannelId,
+                chatRoomId
+        );
+        return isTextChannelExist;
+    }
+
     public List<TextChannel> getAccessibleTextChannels(String userId) {
         User user = userMongoRepository.findById(userId).orElseThrow(
             () -> new AccessDeniedException("User not found")
