@@ -3,9 +3,7 @@ package discord.chat.api.infrastructure.websocket;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.List;
 import java.util.Map;
@@ -78,10 +76,5 @@ public class ChatSessionRegistry {
         }
 
         return Set.copyOf(sessionIds);
-    }
-
-    @EventListener
-    public void onDisconnect(SessionDisconnectEvent event) {
-        removeSession(event.getSessionId());
     }
 }

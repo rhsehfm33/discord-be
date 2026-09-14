@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatRoomMessageDelivery {
-    private final ChatSessionRegistry sessions;
+    private final ChatSessionRegistry chatSessionRegistry;
     private final WebSocketSessionMessageSender sessionMessageSender;
 
     @EventListener
     public void deliver(ChatMessageResponse message) {
-        for (String sessionId : sessions.getSessionIds(message.getChatRoomId())) {
+        for (String sessionId : chatSessionRegistry.getSessionIds(message.getChatRoomId())) {
             try {
                 sessionMessageSender.send(sessionId, "/channel", message);
             } catch (RuntimeException exception) {

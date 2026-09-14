@@ -4,6 +4,7 @@ import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
@@ -13,6 +14,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.List;
 
@@ -61,6 +63,11 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         }
 
         chatSessionRegistry.removeSession(accessor.getSessionId());
+    }
+
+    @EventListener
+    public void onDisconnect(SessionDisconnectEvent event) {
+        chatSessionRegistry.removeSession(event.getSessionId());
     }
 
     private void registerSession(StompHeaderAccessor accessor) {
