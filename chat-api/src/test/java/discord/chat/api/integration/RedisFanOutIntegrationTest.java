@@ -9,7 +9,7 @@ import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.redis.ChatSessionRedisBroker;
 import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.support.TestPropertySourceUtils;
 
@@ -62,9 +61,9 @@ class RedisFanOutIntegrationTest {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 assertThat(firstServerContext.getBean(ChatSessionRegistry.class)
-                    .hasChannelAccess("first", "room", "channel")).isTrue();
+                    .hasChannelAccess("user", "room", "channel")).isTrue();
                 assertThat(secondServerContext.getBean(ChatSessionRegistry.class)
-                    .hasChannelAccess("second", "room", "channel")).isTrue();
+                    .hasChannelAccess("user", "room", "channel")).isTrue();
             });
         }
     }
@@ -92,13 +91,13 @@ class RedisFanOutIntegrationTest {
             firstServerContext.getBean(ChatMessageRedisBroker.class).publish(publishedMessage);
 
             // Verify real Redis publication, deserialization, and Spring event delivery.
-            assertDeliveredMessage(firstServerContext, "first", publishedMessage);
-            assertDeliveredMessage(secondServerContext, "second", publishedMessage);
+            assertDeliveredMessage(firstServerContext, "first-user", publishedMessage);
+            assertDeliveredMessage(secondServerContext, "second-user", publishedMessage);
 
             SimpMessagingTemplate otherRoomMessagingTemplate =
                 otherRoomServerContext.getBean(SimpMessagingTemplate.class);
             verify(otherRoomMessagingTemplate, after(500).never()).convertAndSendToUser(
-                any(String.class), any(String.class), any(), any(MessageHeaders.class)
+                any(String.class), any(String.class), any()
             );
         }
     }
@@ -163,23 +162,20 @@ class RedisFanOutIntegrationTest {
         when(channelAccessService.getTextChannelsBy(userId, chatRoomId)).thenReturn(List.of(textChannel));
     }
 
-    // Waits for delivery and checks the message and target session.
+    // Waits for delivery and checks the message and target user.
     private void assertDeliveredMessage(
         AnnotationConfigApplicationContext serverContext,
-        String sessionId,
+        String userId,
         ChatMessageResponse expectedMessage
     ) {
         SimpMessagingTemplate simpMessagingTemplate = serverContext.getBean(SimpMessagingTemplate.class);
         ArgumentCaptor<ChatMessageResponse> deliveredMessageCaptor =
             ArgumentCaptor.forClass(ChatMessageResponse.class);
-        ArgumentCaptor<MessageHeaders> messageHeadersCaptor = ArgumentCaptor.forClass(MessageHeaders.class);
-
         verify(simpMessagingTemplate, timeout(5000)).convertAndSendToUser(
-            eq(sessionId), eq("/channel"), deliveredMessageCaptor.capture(), messageHeadersCaptor.capture()
+            eq(userId), eq("/channel"), deliveredMessageCaptor.capture()
         );
 
         assertThat(deliveredMessageCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedMessage);
-        assertThat(messageHeadersCaptor.getValue().get("simpSessionId")).isEqualTo(sessionId);
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -190,7 +186,7 @@ class RedisFanOutIntegrationTest {
         ChatSessionEventHandler.class,
         ChatSessionRegistry.class,
         ChatRoomMessageDelivery.class,
-        WebSocketSessionMessageSender.class
+        WebSocketUserMessageSender.class
     })
     static class RedisTestConfig {
         // Creates a connection factory for the test Redis server.

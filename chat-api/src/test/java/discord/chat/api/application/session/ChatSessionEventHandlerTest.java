@@ -3,7 +3,6 @@ package discord.chat.api.application.session;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
-import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +33,7 @@ class ChatSessionEventHandlerTest {
     // Checks that a join event loads channels belonging to the joined room.
     @Test
     void joinAccessibleRoom() {
-        TextChannel joinedRoomChannel = createTextChannel("joined-room");
+        TextChannel joinedRoomChannel = createTextChannel();
         when(chatSessionRegistry.hasUserSessions("user")).thenReturn(true);
         when(channelAccessService.getTextChannelsBy("user", "joined-room"))
             .thenReturn(List.of(joinedRoomChannel));
@@ -65,12 +64,8 @@ class ChatSessionEventHandlerTest {
         verify(chatSessionRegistry).delete("room");
     }
 
-    // Creates a text channel belonging to the requested room.
-    private TextChannel createTextChannel(String chatRoomId) {
-        TextChannel textChannel = mock(TextChannel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        when(textChannel.getChatRoom()).thenReturn(chatRoom);
-        when(chatRoom.getId()).thenReturn(chatRoomId);
-        return textChannel;
+    // Creates a text channel returned by the access service.
+    private TextChannel createTextChannel() {
+        return mock(TextChannel.class);
     }
 }

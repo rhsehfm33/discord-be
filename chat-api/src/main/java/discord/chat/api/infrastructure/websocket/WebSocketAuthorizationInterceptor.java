@@ -22,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PERSONAL_CHANNEL_DESTINATION = "/user/channel";
+    private static final String USER_ID_SESSION_ATTRIBUTE = "userId";
 
     private final ChannelAccessService channelAccessService;
     private final ChatSessionRegistry chatSessionRegistry;
@@ -40,7 +41,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             && !"/app/sendText".equals(accessor.getDestination())) {
             throw new IllegalArgumentException("Messages must be sent through /app/sendText");
         } else if (StompCommand.DISCONNECT.equals(command)) {
-            chatSessionRegistry.removeSession(accessor.getSessionId());
+            removeSession(accessor);
         }
 
         return message;
@@ -62,12 +63,12 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             return;
         }
 
-        chatSessionRegistry.removeSession(accessor.getSessionId());
+        removeSession(accessor);
     }
 
     @EventListener
     public void onDisconnect(SessionDisconnectEvent event) {
-        chatSessionRegistry.removeSession(event.getSessionId());
+        removeSession(StompHeaderAccessor.wrap(event.getMessage()));
     }
 
     private void registerSession(StompHeaderAccessor accessor) {
@@ -75,9 +76,24 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             || !(authentication.getPrincipal() instanceof User user)) {
             throw new IllegalStateException("Authenticated WebSocket user is required");
         }
+        if (accessor.getSessionAttributes() == null) {
+            throw new IllegalStateException("WebSocket session attributes are required");
+        }
 
+        accessor.getSessionAttributes().put(USER_ID_SESSION_ATTRIBUTE, user.getId());
         List<TextChannel> accessibleChannels = channelAccessService.getTextChannelsBy(user.getId());
         chatSessionRegistry.register(user.getId(), accessor.getSessionId(), accessibleChannels);
+    }
+
+    private void removeSession(StompHeaderAccessor accessor) {
+        if (accessor.getSessionAttributes() == null) {
+            return;
+        }
+
+        Object userId = accessor.getSessionAttributes().get(USER_ID_SESSION_ATTRIBUTE);
+        if (userId instanceof String value) {
+            chatSessionRegistry.removeSession(value, accessor.getSessionId());
+        }
     }
 
     private void validateSubscription(StompHeaderAccessor accessor) {

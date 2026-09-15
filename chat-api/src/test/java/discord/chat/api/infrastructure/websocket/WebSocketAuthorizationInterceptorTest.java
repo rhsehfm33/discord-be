@@ -11,8 +11,11 @@ import org.springframework.messaging.support.ExecutorSubscribableChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -33,6 +36,7 @@ class WebSocketAuthorizationInterceptorTest {
         User user = new User("user", "User", "user@example.com", null, null);
         var stompHeaders = StompHeaderAccessor.create(StompCommand.CONNECT);
         stompHeaders.setSessionId("session");
+        stompHeaders.setSessionAttributes(new HashMap<>());
         stompHeaders.setUser(new UsernamePasswordAuthenticationToken(user, null, List.of()));
         var message = MessageBuilder.createMessage(new byte[0], stompHeaders.getMessageHeaders());
 
@@ -40,6 +44,26 @@ class WebSocketAuthorizationInterceptorTest {
 
         verify(channelAccessService).getTextChannelsBy("user");
         verify(chatSessionRegistry).register("user", "session", accessibleChannels);
+        assertThat(stompHeaders.getSessionAttributes()).containsEntry("userId", "user");
+    }
+
+    // Checks that disconnect cleanup resolves the user from WebSocket session attributes.
+    @Test
+    void removeDisconnectedSessionForStoredUser() {
+        ChannelAccessService channelAccessService = mock(ChannelAccessService.class);
+        ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
+        var webSocketAuthorizationInterceptor = new WebSocketAuthorizationInterceptor(
+            channelAccessService, chatSessionRegistry
+        );
+        var stompHeaders = StompHeaderAccessor.create(StompCommand.DISCONNECT);
+        stompHeaders.setSessionId("session");
+        stompHeaders.setSessionAttributes(new HashMap<>(Map.of("userId", "user")));
+        var message = MessageBuilder.createMessage(new byte[0], stompHeaders.getMessageHeaders());
+
+        webSocketAuthorizationInterceptor.preSend(message, new ExecutorSubscribableChannel());
+
+        verify(chatSessionRegistry).removeSession("user", "session");
+        verifyNoInteractions(channelAccessService);
     }
 
     // Checks that clients cannot send to non-existing destinations.

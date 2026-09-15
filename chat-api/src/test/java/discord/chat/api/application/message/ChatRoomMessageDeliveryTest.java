@@ -1,7 +1,7 @@
 package discord.chat.api.application.message;
 
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
 import org.junit.jupiter.api.Test;
@@ -15,14 +15,14 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class ChatRoomMessageDeliveryTest {
-    // Checks that the message is sent to every session returned for its room.
+    // Checks that the message is sent once to every user returned for its room.
     @Test
     void deliverMessageToRoomSessions() {
         ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
-        WebSocketSessionMessageSender webSocketSessionMessageSender = mock(WebSocketSessionMessageSender.class);
+        WebSocketUserMessageSender webSocketUserMessageSender = mock(WebSocketUserMessageSender.class);
         ChatRoomMessageDelivery chatRoomMessageDelivery =
-            new ChatRoomMessageDelivery(chatSessionRegistry, webSocketSessionMessageSender);
-        when(chatSessionRegistry.getSessionIds("room")).thenReturn(Set.of("first-session", "second-session"));
+            new ChatRoomMessageDelivery(chatSessionRegistry, webSocketUserMessageSender);
+        when(chatSessionRegistry.getUserIds("room")).thenReturn(Set.of("first-user", "second-user"));
 
         ChatMessageResponse chatMessageResponse = new ChatMessageResponse(
             "message",
@@ -35,9 +35,9 @@ class ChatRoomMessageDeliveryTest {
 
         chatRoomMessageDelivery.deliver(chatMessageResponse);
 
-        verify(chatSessionRegistry).getSessionIds("room");
-        verify(webSocketSessionMessageSender).send("first-session", "/channel", chatMessageResponse);
-        verify(webSocketSessionMessageSender).send("second-session", "/channel", chatMessageResponse);
-        verifyNoMoreInteractions(chatSessionRegistry, webSocketSessionMessageSender);
+        verify(chatSessionRegistry).getUserIds("room");
+        verify(webSocketUserMessageSender).send("first-user", "/channel", chatMessageResponse);
+        verify(webSocketUserMessageSender).send("second-user", "/channel", chatMessageResponse);
+        verifyNoMoreInteractions(chatSessionRegistry, webSocketUserMessageSender);
     }
 }

@@ -5,7 +5,7 @@ import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessagePublishErrorResponse;
 import discord.chat.api.support.InstanceSetter;
@@ -33,7 +33,7 @@ class ChatMessageServiceTest {
     @Mock
     private ChatMessageRepository chatMessageRepository;
     @Mock
-    private WebSocketSessionMessageSender webSocketSessionMessageSender;
+    private WebSocketUserMessageSender webSocketUserMessageSender;
     @Mock
     private ChatMessageRedisBroker chatMessageRedisBroker;
     private ChatMessage storedMessage;
@@ -44,7 +44,7 @@ class ChatMessageServiceTest {
     @BeforeEach
     void setUp() {
         chatMessageService = new ChatMessageService(
-                chatSessionRegistry, chatMessageRepository, webSocketSessionMessageSender, chatMessageRedisBroker
+                chatSessionRegistry, chatMessageRepository, webSocketUserMessageSender, chatMessageRedisBroker
         );
     }
 
@@ -77,12 +77,12 @@ class ChatMessageServiceTest {
         assertThat(publishedMessage.getContent()).isEqualTo("hello");
         assertThat(publishedMessage.getSender().id()).isEqualTo("sender");
         assertThat(publishedMessage.getCreatedAt()).isEqualTo(storedMessage.getCreatedAt());
-        verifyNoInteractions(webSocketSessionMessageSender);
+        verifyNoInteractions(webSocketUserMessageSender);
     }
 
     // Checks that a Redis failure sends an error to the sender.
     @Test
-    void sendErrorToSendingSessionWhenPublicationFails() throws Exception {
+    void sendErrorToSendingUserWhenPublicationFails() throws Exception {
         prepareStoredMessage();
         doThrow(new IllegalStateException("Redis unavailable")).when(chatMessageRedisBroker).publish(any());
 
@@ -90,7 +90,7 @@ class ChatMessageServiceTest {
 
         ArgumentCaptor<MessagePublishErrorResponse> publishErrorCaptor =
             ArgumentCaptor.forClass(MessagePublishErrorResponse.class);
-        verify(webSocketSessionMessageSender).send(eq("session"), eq("/channel/errors"), publishErrorCaptor.capture());
+        verify(webSocketUserMessageSender).send(eq("sender"), eq("/channel/errors"), publishErrorCaptor.capture());
         assertThat(publishErrorCaptor.getValue().messageId()).isEqualTo("64b7a1");
         assertThat(publishErrorCaptor.getValue().code()).isEqualTo("MESSAGE_PUBLISH_FAILED");
     }
@@ -98,11 +98,11 @@ class ChatMessageServiceTest {
     // Checks that a session without channel access cannot save or send messages.
     @Test
     void rejectSessionWithoutChannelAccess() {
-        when(chatSessionRegistry.hasChannelAccess("session", "room", "channel")).thenReturn(false);
+        when(chatSessionRegistry.hasChannelAccess("sender", "room", "channel")).thenReturn(false);
 
         assertThatThrownBy(this::sendMessage).isInstanceOf(AccessDeniedException.class);
 
-        verifyNoInteractions(chatMessageRepository, chatMessageRedisBroker, webSocketSessionMessageSender);
+        verifyNoInteractions(chatMessageRepository, chatMessageRedisBroker, webSocketUserMessageSender);
     }
 
     // Prepares channel access and the message returned by the repository.
@@ -110,7 +110,7 @@ class ChatMessageServiceTest {
         storedMessage = new ChatMessage("sender", "room", "channel", "hello");
         InstanceSetter.setField(storedMessage, "id", "64b7a1");
 
-        when(chatSessionRegistry.hasChannelAccess("session", "room", "channel")).thenReturn(true);
+        when(chatSessionRegistry.hasChannelAccess("sender", "room", "channel")).thenReturn(true);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(storedMessage);
     }
 
@@ -118,6 +118,6 @@ class ChatMessageServiceTest {
     private void sendMessage() {
         User sendingUser = new User("sender", "Sender", "sender@example.com", null, "image.png");
         var senderAuthentication = new UsernamePasswordAuthenticationToken(sendingUser, null, List.of());
-        chatMessageService.send("room", "channel", "hello", senderAuthentication, "session");
+        chatMessageService.send("room", "channel", "hello", senderAuthentication);
     }
 }

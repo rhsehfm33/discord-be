@@ -28,29 +28,33 @@ class ChatSessionRegistryTest {
         chatSessionRegistry = new ChatSessionRegistry(chatMessageRedisBroker);
     }
 
-    // Checks that the first session subscribes and the last session unsubscribes.
+    // Checks that Redis remains subscribed until the room's last local user disconnects.
     @Test
     void manageRoomSubscription() {
         List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
 
         chatSessionRegistry.register("user", "first", accessibleTextChannels);
         chatSessionRegistry.register("user", "second", accessibleTextChannels);
+        chatSessionRegistry.register("other-user", "third", accessibleTextChannels);
 
-        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isTrue();
-        assertThat(chatSessionRegistry.hasChannelAccess("first", "other-room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.hasChannelAccess("user", "room", "channel")).isTrue();
+        assertThat(chatSessionRegistry.hasChannelAccess("user", "other-room", "channel")).isFalse();
         verify(chatMessageRedisBroker).subscribe("room");
         verify(chatMessageRedisBroker).requireConnection();
 
-        chatSessionRegistry.removeSession("first");
+        chatSessionRegistry.removeSession("user", "first");
         verify(chatMessageRedisBroker, never()).unsubscribe("room");
 
-        chatSessionRegistry.removeSession("second");
+        chatSessionRegistry.removeSession("user", "second");
+        verify(chatMessageRedisBroker, never()).unsubscribe("room");
+
+        chatSessionRegistry.removeSession("other-user", "third");
         verify(chatMessageRedisBroker).unsubscribe("room");
     }
 
-    // Checks that each room returns only its own sessions.
+    // Checks that each room returns only its own users.
     @Test
-    void getSessionIdsForRequestedRoomOnly() {
+    void getUserIdsForRequestedRoomOnly() {
         chatSessionRegistry.register("first-user", "same-room", createAccessibleChannels("room", "channel"));
         chatSessionRegistry.register(
             "second-user",
@@ -58,8 +62,8 @@ class ChatSessionRegistryTest {
             createAccessibleChannels("other", "other-channel")
         );
 
-        assertThat(chatSessionRegistry.getSessionIds("room")).containsExactly("same-room");
-        assertThat(chatSessionRegistry.getSessionIds("other")).containsExactly("other-room");
+        assertThat(chatSessionRegistry.getUserIds("room")).containsExactly("first-user");
+        assertThat(chatSessionRegistry.getUserIds("other")).containsExactly("second-user");
     }
 
     // Checks that a failed new registration keeps the existing session.
@@ -74,10 +78,10 @@ class ChatSessionRegistryTest {
 
         assertThatThrownBy(() -> chatSessionRegistry.register("new-user", "new", accessibleTextChannels))
             .isInstanceOf(IllegalStateException.class);
-        assertThat(chatSessionRegistry.getSessionIds("room")).containsExactly("existing");
+        assertThat(chatSessionRegistry.getUserIds("room")).containsExactly("existing-user");
     }
 
-    // Checks that room access is added to and removed from every session owned by a user.
+    // Checks that room access is shared by every session owned by a user.
     @Test
     void updateEverySessionForUserMembership() {
         chatSessionRegistry.register("user", "first", List.of());
@@ -86,28 +90,26 @@ class ChatSessionRegistryTest {
 
         chatSessionRegistry.join("user", accessibleTextChannels);
 
-        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isTrue();
-        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isTrue();
+        assertThat(chatSessionRegistry.hasChannelAccess("user", "room", "channel")).isTrue();
 
         chatSessionRegistry.leave("user", "room");
 
-        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isFalse();
-        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.hasChannelAccess("user", "room", "channel")).isFalse();
         verify(chatMessageRedisBroker).unsubscribe("room");
     }
 
-    // Checks that deleting a room removes it from every local session.
+    // Checks that deleting a room removes it from every local user.
     @Test
-    void removeDeletedRoomFromEverySession() {
+    void removeDeletedRoomFromEveryUser() {
         List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
         chatSessionRegistry.register("first-user", "first", accessibleTextChannels);
         chatSessionRegistry.register("second-user", "second", accessibleTextChannels);
 
         chatSessionRegistry.delete("room");
 
-        assertThat(chatSessionRegistry.getSessionIds("room")).isEmpty();
-        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isFalse();
-        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.getUserIds("room")).isEmpty();
+        assertThat(chatSessionRegistry.hasChannelAccess("first-user", "room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.hasChannelAccess("second-user", "room", "channel")).isFalse();
         verify(chatMessageRedisBroker).unsubscribe("room");
     }
 

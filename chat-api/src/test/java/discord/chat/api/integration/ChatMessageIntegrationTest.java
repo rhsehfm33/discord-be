@@ -4,7 +4,7 @@ import discord.chat.api.application.message.ChatMessageService;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.support.BaseIntegrationTest;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
@@ -37,7 +37,7 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
     private ChatMessageRedisBroker chatMessageRedisBroker;
 
     @MockBean
-    private WebSocketSessionMessageSender webSocketSessionMessageSender;
+    private WebSocketUserMessageSender webSocketUserMessageSender;
 
     // Gives the test session access to the channel.
     @BeforeEach
@@ -53,7 +53,7 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
     // Removes the test session after each test.
     @AfterEach
     void removeSession() {
-        chatSessionRegistry.removeSession("session");
+        chatSessionRegistry.removeSession("sender", "session");
     }
 
     // Checks that the message is saved in MongoDB.
@@ -88,6 +88,6 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
     private void sendMessage() {
         User sendingUser = new User("sender", "Sender", "sender@example.com", null, "image.png");
         var senderAuthentication = new UsernamePasswordAuthenticationToken(sendingUser, null, List.of());
-        chatMessageService.send("room", "channel", "hello", senderAuthentication, "session");
+        chatMessageService.send("room", "channel", "hello", senderAuthentication);
     }
 }

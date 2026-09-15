@@ -1,14 +1,14 @@
 package discord.chat.api.application.message;
 
-import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
-import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
+import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessagePublishErrorResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
-import discord.chat.api.interfaces.message.ChatMessageResponse;
+import discord.chat.common.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,19 +21,18 @@ import org.springframework.stereotype.Service;
 public class ChatMessageService {
     private final ChatSessionRegistry chatSessionRegistry;
     private final ChatMessageRepository chatMessageRepository;
-    private final WebSocketSessionMessageSender sessionMessageSender;
-    private final ChatMessageRedisBroker redisBroker;
+    private final WebSocketUserMessageSender webSocketUserMessageSender;
+    private final ChatMessageRedisBroker chatMessageRedisBroker;
 
     public void send(
         String chatRoomId,
         String textChannelId,
         String content,
-        Authentication authentication,
-        String sessionId
+        Authentication authentication
     ) {
         User sender = (User) authentication.getPrincipal();
         boolean hasAccess = chatSessionRegistry.hasChannelAccess(
-            sessionId,
+            sender.getId(),
             chatRoomId,
             textChannelId
         );
@@ -56,7 +55,7 @@ public class ChatMessageService {
         );
 
         try {
-            redisBroker.publish(response);
+            chatMessageRedisBroker.publish(response);
         } catch (Exception exception) {
             log.error("Message stored but Redis publication failed: messageId={}",
                 storedMessage.getId(), exception);
@@ -64,7 +63,7 @@ public class ChatMessageService {
                 "MESSAGE_PUBLISH_FAILED", storedMessage.getId(), chatRoomId,
                 textChannelId, "메시지는 저장됐지만 실시간 전달에 실패했습니다."
             );
-            sessionMessageSender.send(sessionId, "/channel/errors", error);
+            webSocketUserMessageSender.send(sender.getId(), "/channel/errors", error);
         }
     }
 }
