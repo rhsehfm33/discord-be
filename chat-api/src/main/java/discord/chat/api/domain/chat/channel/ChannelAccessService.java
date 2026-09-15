@@ -34,7 +34,7 @@ public class ChannelAccessService {
         return isTextChannelExist;
     }
 
-    public List<TextChannel> getAccessibleTextChannels(String userId) {
+    public List<TextChannel> getTextChannelsBy(String userId) {
         User user = userMongoRepository.findById(userId).orElseThrow(
             () -> new AccessDeniedException("User not found")
         );
@@ -45,5 +45,14 @@ public class ChannelAccessService {
             .toList();
 
         return textChannelRepository.findAllByChatRoomIn(subscribedChatRooms);
+    }
+
+    public List<TextChannel> getTextChannelsBy(String userId, String chatRoomId) {
+        boolean hasChatRoomAccess = chatSubscriptRepository.existsByUserIdAndChatRoomId(userId, chatRoomId);
+        if (!hasChatRoomAccess) {
+            return List.of();
+        }
+
+        return textChannelRepository.findAllByChatRoomId(chatRoomId);
     }
 }

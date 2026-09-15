@@ -2,7 +2,11 @@ package discord.chat.api.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.message.ChatRoomMessageDelivery;
+import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.application.session.ChatSessionEventHandler;
+import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.api.infrastructure.redis.ChatSessionRedisBroker;
 import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketSessionMessageSender;
@@ -24,11 +28,13 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.support.TestPropertySourceUtils;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -36,6 +42,32 @@ import static org.mockito.Mockito.*;
 // Requires local Redis. Each context represents a separate message-server instance.
 // Only the final WebSocket transport is mocked; Redis and Spring event delivery are real.
 class RedisFanOutIntegrationTest {
+
+    // Checks that a membership event updates one user's sessions across server instances.
+    @Test
+    void updateUserSessionsAcrossInstances() throws Exception {
+        String redisTopicPrefix = "discord:test:chat-room:" + UUID.randomUUID();
+
+        try (
+            var firstServerContext = createInstance(redisTopicPrefix);
+            var secondServerContext = createInstance(redisTopicPrefix)
+        ) {
+            registerEmptySession(firstServerContext, "user", "first");
+            registerEmptySession(secondServerContext, "user", "second");
+            allowRoomAccess(firstServerContext, "user", "room", "channel");
+            allowRoomAccess(secondServerContext, "user", "room", "channel");
+
+            firstServerContext.getBean(ChatSessionRedisBroker.class)
+                .publish(ChatSessionEvent.join("user", "room"));
+
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                assertThat(firstServerContext.getBean(ChatSessionRegistry.class)
+                    .hasChannelAccess("first", "room", "channel")).isTrue();
+                assertThat(secondServerContext.getBean(ChatSessionRegistry.class)
+                    .hasChannelAccess("second", "room", "channel")).isTrue();
+            });
+        }
+    }
 
     // Checks that Redis delivers to both servers in the room, but not another room.
     @Test
@@ -47,9 +79,9 @@ class RedisFanOutIntegrationTest {
             var secondServerContext = createInstance(redisTopicPrefix);
             var otherRoomServerContext = createInstance(redisTopicPrefix)
         ) {
-            registerSession(firstServerContext, "first", "room", "channel");
-            registerSession(secondServerContext, "second", "room", "channel");
-            registerSession(otherRoomServerContext, "other", "other-room", "other-channel");
+            registerSession(firstServerContext, "first-user", "first", "room", "channel");
+            registerSession(secondServerContext, "second-user", "second", "room", "channel");
+            registerSession(otherRoomServerContext, "other-user", "other", "other-room", "other-channel");
 
             ChatMessageResponse publishedMessage = new ChatMessageResponse(
                 "message", "room", "channel",
@@ -91,6 +123,7 @@ class RedisFanOutIntegrationTest {
     // Gives a session access to a room and starts its Redis subscription.
     private void registerSession(
         AnnotationConfigApplicationContext serverContext,
+        String userId,
         String sessionId,
         String chatRoomId,
         String textChannelId
@@ -101,8 +134,33 @@ class RedisFanOutIntegrationTest {
         when(textChannel.getChatRoom()).thenReturn(chatRoom);
         when(chatRoom.getId()).thenReturn(chatRoomId);
         serverContext.getBean(ChatSessionRegistry.class).register(
-            sessionId, java.util.List.of(textChannel)
+            userId, sessionId, List.of(textChannel)
         );
+    }
+
+    // Registers a connected user before the user has access to a room.
+    private void registerEmptySession(
+        AnnotationConfigApplicationContext serverContext,
+        String userId,
+        String sessionId
+    ) {
+        serverContext.getBean(ChatSessionRegistry.class).register(userId, sessionId, List.of());
+    }
+
+    // Gives the event handler current database access for one room.
+    private void allowRoomAccess(
+        AnnotationConfigApplicationContext serverContext,
+        String userId,
+        String chatRoomId,
+        String textChannelId
+    ) {
+        TextChannel textChannel = mock(TextChannel.class);
+        ChatRoom chatRoom = mock(ChatRoom.class);
+        when(textChannel.getId()).thenReturn(textChannelId);
+        when(textChannel.getChatRoom()).thenReturn(chatRoom);
+        when(chatRoom.getId()).thenReturn(chatRoomId);
+        ChannelAccessService channelAccessService = serverContext.getBean(ChannelAccessService.class);
+        when(channelAccessService.getTextChannelsBy(userId, chatRoomId)).thenReturn(List.of(textChannel));
     }
 
     // Waits for delivery and checks the message and target session.
@@ -128,6 +186,8 @@ class RedisFanOutIntegrationTest {
     @Import({
         RedisMessagingConfig.class,
         ChatMessageRedisBroker.class,
+        ChatSessionRedisBroker.class,
+        ChatSessionEventHandler.class,
         ChatSessionRegistry.class,
         ChatRoomMessageDelivery.class,
         WebSocketSessionMessageSender.class
@@ -158,6 +218,12 @@ class RedisFanOutIntegrationTest {
         @Bean
         SimpMessagingTemplate messagingTemplate() {
             return mock(SimpMessagingTemplate.class);
+        }
+
+        // Replaces database access with a mock for session membership events.
+        @Bean
+        ChannelAccessService channelAccessService() {
+            return mock(ChannelAccessService.class);
         }
     }
 }

@@ -47,7 +47,7 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
         when(textChannel.getId()).thenReturn("channel");
         when(textChannel.getChatRoom()).thenReturn(chatRoom);
         when(chatRoom.getId()).thenReturn("room");
-        chatSessionRegistry.register("session", List.of(textChannel));
+        chatSessionRegistry.register("sender", "session", List.of(textChannel));
     }
 
     // Removes the test session after each test.

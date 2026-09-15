@@ -17,5 +17,7 @@ public interface TextChannelMongoRepository extends MongoRepository<TextChannel,
 
     List<TextChannel> findAllByChatRoom(ChatRoom chatRoom);
 
+    List<TextChannel> findAllByChatRoomId(String chatRoomId);
+
     List<TextChannel> findAllByChatRoomIn(Collection<ChatRoom> chatRooms);
 }

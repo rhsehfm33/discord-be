@@ -3,8 +3,11 @@ package discord.chat.api.domain.chat.subscription;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
 import discord.chat.common.infrastructure.chat.room.ChatRoomType;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
@@ -18,9 +21,11 @@ import discord.chat.common.exception.CustomResourceConflictException;
 @Service
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
+@Transactional
 public class ChatSubscriptionService {
     private final ChatSubscriptMongoRepository chatSubscriptMongoRepository;
     private final ChatRoomMongoRepository chatRoomMongoRepository;
+    private final ChatSessionEventPublisher chatSessionEventPublisher;
 
     public ChatRoomResponse subscribe(Authentication authentication, String chatRoomId)
         throws CustomEntityNotFoundException, CustomResourceConflictException {
@@ -33,6 +38,7 @@ public class ChatSubscriptionService {
         }
         ChatSubscription chatSubscription = new ChatSubscription(user, chatRoom);
         chatSubscriptMongoRepository.save(chatSubscription);
+        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.join(user.getId(), chatRoomId));
 
         return new ChatRoomResponse(chatRoom, chatRoom.getOwner().equals(user));
     }
@@ -43,10 +49,10 @@ public class ChatSubscriptionService {
         ChatRoom chatRoom = chatRoomMongoRepository.findById(chatRoomId).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat room not found")
         );
-        ChatSubscription chatSubscription = chatSubscriptMongoRepository.findByUserAndChatRoom(user, chatRoom).orElseThrow(
-            () -> new CustomEntityNotFoundException("NOT_FOUND", "Chat subscription not found")
-        );
+        ChatSubscription chatSubscription = chatSubscriptMongoRepository.findByUserAndChatRoom(user, chatRoom)
+            .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Chat subscription not found"));
         chatSubscriptMongoRepository.delete(chatSubscription);
+        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.leave(user.getId(), chatRoomId));
     }
 }
 

@@ -76,8 +76,8 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
             throw new IllegalStateException("Authenticated WebSocket user is required");
         }
 
-        List<TextChannel> accessibleChannels = channelAccessService.getAccessibleTextChannels(user.getId());
-        chatSessionRegistry.register(accessor.getSessionId(), accessibleChannels);
+        List<TextChannel> accessibleChannels = channelAccessService.getTextChannelsBy(user.getId());
+        chatSessionRegistry.register(user.getId(), accessor.getSessionId(), accessibleChannels);
     }
 
     private void validateSubscription(StompHeaderAccessor accessor) {

@@ -1,8 +1,19 @@
 package discord.chat.api.domain.chat.room;
 
-import java.util.List;
-import java.util.Optional;
-
+import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
+import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
+import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.infrastructure.chat.channel.TextChannel;
+import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
+import discord.chat.common.infrastructure.chat.room.ChatRoom;
+import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
+import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
+import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.util.RandomImageUrlGenerator;
+import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -15,18 +26,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
-import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
-import discord.chat.common.infrastructure.chat.room.ChatRoom;
-import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
-import discord.chat.common.infrastructure.chat.subsription.ChatSubscription;
-import discord.chat.common.infrastructure.user.User;
-import discord.chat.common.util.RandomImageUrlGenerator;
-import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
-import discord.chat.api.interfaces.chat.room.ChatRoomResponse;
-import discord.chat.common.exception.CustomEntityNotFoundException;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -37,6 +38,7 @@ public class ChatRoomService {
     private final ChatSubscriptMongoRepository chatSubscriptMongoRepository;
     private final TextChannelMongoRepository textChannelMongoRepository;
     private final MongoTemplate mongoTemplate;
+    private final ChatSessionEventPublisher chatSessionEventPublisher;
 
     public ChatRoomResponse create(Authentication authentication, ChatRoomRequest chatRoomRequest) {
         if (chatRoomRequest.getImage() == null) {
@@ -50,6 +52,7 @@ public class ChatRoomService {
         chatSubscriptMongoRepository.save(new ChatSubscription(owner, newChatRoom));
         TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);
         textChannelMongoRepository.save(textChannel);
+        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.join(owner.getId(), newChatRoom.getId()));
         return new ChatRoomResponse(newChatRoom, true);
     }
 
@@ -104,6 +107,7 @@ public class ChatRoomService {
             chatSubscriptMongoRepository.deleteAllByChatRoom(chatRoomOptional.get());
             textChannelMongoRepository.deleteAllByChatRoom(chatRoomOptional.get());
             chatRoomMongoRepository.deleteById(chatRoomId);
+            chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.delete(chatRoomId));
         } else {
             throw new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under given conditions");
         }

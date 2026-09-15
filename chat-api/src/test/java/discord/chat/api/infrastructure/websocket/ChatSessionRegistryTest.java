@@ -33,8 +33,8 @@ class ChatSessionRegistryTest {
     void manageRoomSubscription() {
         List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
 
-        chatSessionRegistry.register("first", accessibleTextChannels);
-        chatSessionRegistry.register("second", accessibleTextChannels);
+        chatSessionRegistry.register("user", "first", accessibleTextChannels);
+        chatSessionRegistry.register("user", "second", accessibleTextChannels);
 
         assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isTrue();
         assertThat(chatSessionRegistry.hasChannelAccess("first", "other-room", "channel")).isFalse();
@@ -51,8 +51,12 @@ class ChatSessionRegistryTest {
     // Checks that each room returns only its own sessions.
     @Test
     void getSessionIdsForRequestedRoomOnly() {
-        chatSessionRegistry.register("same-room", createAccessibleChannels("room", "channel"));
-        chatSessionRegistry.register("other-room", createAccessibleChannels("other", "other-channel"));
+        chatSessionRegistry.register("first-user", "same-room", createAccessibleChannels("room", "channel"));
+        chatSessionRegistry.register(
+            "second-user",
+            "other-room",
+            createAccessibleChannels("other", "other-channel")
+        );
 
         assertThat(chatSessionRegistry.getSessionIds("room")).containsExactly("same-room");
         assertThat(chatSessionRegistry.getSessionIds("other")).containsExactly("other-room");
@@ -63,14 +67,48 @@ class ChatSessionRegistryTest {
     void keepExistingSessionOnRegistrationFailure() {
         List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
 
-        chatSessionRegistry.register("existing", accessibleTextChannels);
+        chatSessionRegistry.register("existing-user", "existing", accessibleTextChannels);
         doThrow(new IllegalStateException("Redis unavailable"))
             .when(chatMessageRedisBroker)
             .requireConnection();
 
-        assertThatThrownBy(() -> chatSessionRegistry.register("new", accessibleTextChannels))
+        assertThatThrownBy(() -> chatSessionRegistry.register("new-user", "new", accessibleTextChannels))
             .isInstanceOf(IllegalStateException.class);
         assertThat(chatSessionRegistry.getSessionIds("room")).containsExactly("existing");
+    }
+
+    // Checks that room access is added to and removed from every session owned by a user.
+    @Test
+    void updateEverySessionForUserMembership() {
+        chatSessionRegistry.register("user", "first", List.of());
+        chatSessionRegistry.register("user", "second", List.of());
+        List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
+
+        chatSessionRegistry.join("user", accessibleTextChannels);
+
+        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isTrue();
+        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isTrue();
+
+        chatSessionRegistry.leave("user", "room");
+
+        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isFalse();
+        verify(chatMessageRedisBroker).unsubscribe("room");
+    }
+
+    // Checks that deleting a room removes it from every local session.
+    @Test
+    void removeDeletedRoomFromEverySession() {
+        List<TextChannel> accessibleTextChannels = createAccessibleChannels("room", "channel");
+        chatSessionRegistry.register("first-user", "first", accessibleTextChannels);
+        chatSessionRegistry.register("second-user", "second", accessibleTextChannels);
+
+        chatSessionRegistry.delete("room");
+
+        assertThat(chatSessionRegistry.getSessionIds("room")).isEmpty();
+        assertThat(chatSessionRegistry.hasChannelAccess("first", "room", "channel")).isFalse();
+        assertThat(chatSessionRegistry.hasChannelAccess("second", "room", "channel")).isFalse();
+        verify(chatMessageRedisBroker).unsubscribe("room");
     }
 
     // Creates channel access for the given room.

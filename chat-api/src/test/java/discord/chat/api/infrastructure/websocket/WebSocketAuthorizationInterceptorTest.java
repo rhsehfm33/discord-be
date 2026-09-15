@@ -4,21 +4,17 @@ import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.user.User;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ExecutorSubscribableChannel;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class WebSocketAuthorizationInterceptorTest {
     // Checks that a socket connection resolves channel access locally and registers authorized channels.
@@ -33,7 +29,7 @@ class WebSocketAuthorizationInterceptorTest {
         when(accessibleChannel.getChatRoom()).thenReturn(chatRoom);
         when(chatRoom.getId()).thenReturn("room");
         List<TextChannel> accessibleChannels = List.of(accessibleChannel);
-        when(channelAccessService.getAccessibleTextChannels("user")).thenReturn(accessibleChannels);
+        when(channelAccessService.getTextChannelsBy("user")).thenReturn(accessibleChannels);
         User user = new User("user", "User", "user@example.com", null, null);
         var stompHeaders = StompHeaderAccessor.create(StompCommand.CONNECT);
         stompHeaders.setSessionId("session");
@@ -42,8 +38,8 @@ class WebSocketAuthorizationInterceptorTest {
 
         interceptor.preSend(message, new ExecutorSubscribableChannel());
 
-        verify(channelAccessService).getAccessibleTextChannels("user");
-        verify(chatSessionRegistry).register("session", accessibleChannels);
+        verify(channelAccessService).getTextChannelsBy("user");
+        verify(chatSessionRegistry).register("user", "session", accessibleChannels);
     }
 
     // Checks that clients cannot send to non-existing destinations.
