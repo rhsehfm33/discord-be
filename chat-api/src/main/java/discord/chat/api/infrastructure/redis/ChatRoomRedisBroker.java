@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
-public class ChatSessionRedisBroker implements MessageListener {
+public class ChatRoomRedisBroker implements MessageListener {
     private static final String TOPIC_SUFFIX = ":session-events";
 
     private final RedisMessageListenerContainer redisMessageListenerContainer;
@@ -30,7 +30,7 @@ public class ChatSessionRedisBroker implements MessageListener {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ChannelTopic channelTopic;
 
-    public ChatSessionRedisBroker(
+    public ChatRoomRedisBroker(
         RedisMessageListenerContainer redisMessageListenerContainer,
         StringRedisTemplate stringRedisTemplate,
         ObjectMapper objectMapper,

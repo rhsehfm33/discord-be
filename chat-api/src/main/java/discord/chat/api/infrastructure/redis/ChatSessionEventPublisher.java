@@ -11,7 +11,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component
 @RequiredArgsConstructor
 public class ChatSessionEventPublisher {
-    private final ChatSessionRedisBroker chatSessionRedisBroker;
+    private final ChatRoomRedisBroker chatRoomRedisBroker;
 
     public void publishAfterCommit(ChatSessionEvent event) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
@@ -30,7 +30,7 @@ public class ChatSessionEventPublisher {
 
     private void publish(ChatSessionEvent event) {
         try {
-            chatSessionRedisBroker.publish(event);
+            chatRoomRedisBroker.publish(event);
         } catch (Exception exception) {
             log.error(
                 "Chat session event publication failed: type={}, userId={}, chatRoomId={}",

@@ -6,7 +6,7 @@ import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.application.session.ChatSessionEventHandler;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
-import discord.chat.api.infrastructure.redis.ChatSessionRedisBroker;
+import discord.chat.api.infrastructure.redis.ChatRoomRedisBroker;
 import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
@@ -56,7 +56,7 @@ class RedisFanOutIntegrationTest {
             allowRoomAccess(firstServerContext, "user", "room", "channel");
             allowRoomAccess(secondServerContext, "user", "room", "channel");
 
-            firstServerContext.getBean(ChatSessionRedisBroker.class)
+            firstServerContext.getBean(ChatRoomRedisBroker.class)
                 .publish(ChatSessionEvent.join("user", "room"));
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
@@ -182,7 +182,7 @@ class RedisFanOutIntegrationTest {
     @Import({
         RedisMessagingConfig.class,
         ChatMessageRedisBroker.class,
-        ChatSessionRedisBroker.class,
+        ChatRoomRedisBroker.class,
         ChatSessionEventHandler.class,
         ChatSessionRegistry.class,
         ChatRoomMessageDelivery.class,
