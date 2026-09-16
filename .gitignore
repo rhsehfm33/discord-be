@@ -40,3 +40,6 @@ out/
 /*/data/
 
 **/TODO.txt
+
+### Local secrets ###
+/.local/
