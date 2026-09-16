@@ -22,6 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PERSONAL_CHANNEL_DESTINATION = "/user/channel";
+    private static final String CHAT_ROOM_EVENT_DESTINATION = "/user/channel/events";
+    private static final String PUBLISH_ERROR_DESTINATION = "/user/channel/errors";
     private static final String USER_ID_SESSION_ATTRIBUTE = "userId";
 
     private final ChannelAccessService channelAccessService;
@@ -98,7 +100,8 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
 
     private void validateSubscription(StompHeaderAccessor accessor) {
         if (!PERSONAL_CHANNEL_DESTINATION.equals(accessor.getDestination())
-            && !"/user/channel/errors".equals(accessor.getDestination())) {
+            && !CHAT_ROOM_EVENT_DESTINATION.equals(accessor.getDestination())
+            && !PUBLISH_ERROR_DESTINATION.equals(accessor.getDestination())) {
             throw new IllegalArgumentException("Only the personal channel destination may be subscribed");
         }
     }
