@@ -26,18 +26,23 @@ public class ChatSessionEventHandler {
     public void handle(ChatSessionEvent event) {
         switch (event.type()) {
             case JOIN -> join(event.userId(), event.chatRoomId());
-            case LEAVE -> chatSessionRegistry.leave(event.userId(), event.chatRoomId());
+            case LEAVE -> leave(event.userId(), event.chatRoomId());
             case DELETE -> delete(event.chatRoomId());
         }
     }
 
     private void join(String userId, String chatRoomId) {
-        if (!chatSessionRegistry.hasUserSessions(userId)) {
-            return;
+        if (chatSessionRegistry.hasUserSessions(userId)) {
+            List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
+            chatSessionRegistry.join(userId, textChannels);
         }
 
-        List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
-        chatSessionRegistry.join(userId, textChannels);
+        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.subscribed(chatRoomId));
+    }
+
+    private void leave(String userId, String chatRoomId) {
+        chatSessionRegistry.leave(userId, chatRoomId);
+        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.unsubscribed(chatRoomId));
     }
 
     private void delete(String chatRoomId) {
@@ -46,6 +51,12 @@ public class ChatSessionEventHandler {
             send(userId, response);
         }
         chatSessionRegistry.delete(chatRoomId);
+    }
+
+    private void spreadChatRoomEvent(String chatRoomId, ChatRoomEventResponse response) {
+        for (String userId : chatSessionRegistry.getUserIds(chatRoomId)) {
+            send(userId, response);
+        }
     }
 
     private void send(String userId, ChatRoomEventResponse response) {
