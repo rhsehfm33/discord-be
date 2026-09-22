@@ -38,7 +38,9 @@ public class ChatSubscriptionService {
         }
         ChatSubscription chatSubscription = new ChatSubscription(user, chatRoom);
         chatSubscriptMongoRepository.save(chatSubscription);
-        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.join(user.getId(), chatRoomId));
+        chatSessionEventPublisher.publishAfterCommit(
+            ChatSessionEvent.join(user.getId(), user.getNickName(), chatRoomId)
+        );
 
         return new ChatRoomResponse(chatRoom, chatRoom.getOwner().equals(user));
     }
@@ -52,7 +54,9 @@ public class ChatSubscriptionService {
         ChatSubscription chatSubscription = chatSubscriptMongoRepository.findByUserAndChatRoom(user, chatRoom)
             .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Chat subscription not found"));
         chatSubscriptMongoRepository.delete(chatSubscription);
-        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.leave(user.getId(), chatRoomId));
+        chatSessionEventPublisher.publishAfterCommit(
+            ChatSessionEvent.leave(user.getId(), user.getNickName(), chatRoomId)
+        );
     }
 }
 

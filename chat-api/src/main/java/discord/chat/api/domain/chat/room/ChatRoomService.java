@@ -52,7 +52,9 @@ public class ChatRoomService {
         chatSubscriptMongoRepository.save(new ChatSubscription(owner, newChatRoom));
         TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);
         textChannelMongoRepository.save(textChannel);
-        chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.join(owner.getId(), newChatRoom.getId()));
+        chatSessionEventPublisher.publishAfterCommit(
+            ChatSessionEvent.join(owner.getId(), owner.getNickName(), newChatRoom.getId())
+        );
         return new ChatRoomResponse(newChatRoom, true);
     }
 

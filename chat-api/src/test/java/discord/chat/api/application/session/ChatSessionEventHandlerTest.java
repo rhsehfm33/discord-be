@@ -53,7 +53,7 @@ class ChatSessionEventHandlerTest {
         when(channelAccessService.getTextChannelsBy("user", "joined-room"))
             .thenReturn(List.of(joinedRoomChannel));
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "joined-room"));
+        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", "joined-room"));
 
         verify(chatSessionRegistry).join("user", List.of(joinedRoomChannel));
     }
@@ -63,7 +63,7 @@ class ChatSessionEventHandlerTest {
     void ignoreJoinForDisconnectedUser() {
         when(chatSessionRegistry.hasUserSessions("user")).thenReturn(false);
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "room"));
+        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", "room"));
 
         verify(channelAccessService, never()).getTextChannelsBy("user", "room");
         verify(chatSessionRegistry, never()).join(anyString(), anyList());
@@ -72,7 +72,7 @@ class ChatSessionEventHandlerTest {
     // Checks that a leave event removes the user's cached room access.
     @Test
     void leaveRoom() {
-        chatSessionEventHandler.handle(ChatSessionEvent.leave("user", "room"));
+        chatSessionEventHandler.handle(ChatSessionEvent.leave("user", "nickname", "room"));
 
         verify(chatSessionRegistry).leave("user", "room");
     }

@@ -75,7 +75,9 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             "{\"title\":\"Room\",\"type\":\"COMMUNITY\",\"image\":\"room.png\"}", ChatRoomRequest.class
         );
         String chatRoomId = chatRoomService.create(owner, request).getId();
-        verify(chatSessionEventPublisher).publishAfterCommit(ChatSessionEvent.join(owner.getName(), chatRoomId));
+        verify(chatSessionEventPublisher).publishAfterCommit(
+            ChatSessionEvent.join(owner.getName(), "owner", chatRoomId)
+        );
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
         assertThat(channelAccessService.getTextChannelsBy(owner.getName()))
             .extracting(channel -> channel.getChatRoom().getId())
@@ -86,7 +88,9 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
-        verify(chatSessionEventPublisher).publishAfterCommit(ChatSessionEvent.join(member.getName(), chatRoomId));
+        verify(chatSessionEventPublisher).publishAfterCommit(
+            ChatSessionEvent.join(member.getName(), "member", chatRoomId)
+        );
         assertThat(channelAccessService.getTextChannelsBy(member.getName()))
             .extracting(channel -> channel.getChatRoom().getId())
             .containsExactly(chatRoomId);
@@ -103,7 +107,9 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         SecurityContextHolder.getContext().setAuthentication(member);
         chatSubscriptionService.unsubscribe(member, chatRoomId);
-        verify(chatSessionEventPublisher).publishAfterCommit(ChatSessionEvent.leave(member.getName(), chatRoomId));
+        verify(chatSessionEventPublisher).publishAfterCommit(
+            ChatSessionEvent.leave(member.getName(), "member", chatRoomId)
+        );
         assertThat(channelAccessService.getTextChannelsBy(member.getName())).isEmpty();
         assertThat(channelAccessService.getTextChannelsBy(member.getName(), chatRoomId)).isEmpty();
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))

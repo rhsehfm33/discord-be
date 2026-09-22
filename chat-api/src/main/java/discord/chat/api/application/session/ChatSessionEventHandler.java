@@ -4,6 +4,7 @@ import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
+import discord.chat.api.interfaces.chat.room.ChatRoomParticipantResponse;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,24 +26,32 @@ public class ChatSessionEventHandler {
     @EventListener
     public void handle(ChatSessionEvent event) {
         switch (event.type()) {
-            case JOIN -> join(event.userId(), event.chatRoomId());
-            case LEAVE -> leave(event.userId(), event.chatRoomId());
+            case JOIN -> join(event.userId(), event.nickName(), event.chatRoomId());
+            case LEAVE -> leave(event.userId(), event.nickName(), event.chatRoomId());
             case DELETE -> delete(event.chatRoomId());
         }
     }
 
-    private void join(String userId, String chatRoomId) {
+    private void join(String userId, String nickName, String chatRoomId) {
         if (chatSessionRegistry.hasUserSessions(userId)) {
             List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
             chatSessionRegistry.join(userId, textChannels);
         }
 
-        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.subscribed(chatRoomId));
+        ChatRoomParticipantResponse participant = ChatRoomParticipantResponse.builder()
+            .id(userId)
+            .nickName(nickName)
+            .build();
+        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.subscribed(chatRoomId, participant));
     }
 
-    private void leave(String userId, String chatRoomId) {
+    private void leave(String userId, String nickName, String chatRoomId) {
         chatSessionRegistry.leave(userId, chatRoomId);
-        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.unsubscribed(chatRoomId));
+        ChatRoomParticipantResponse participant = ChatRoomParticipantResponse.builder()
+            .id(userId)
+            .nickName(nickName)
+            .build();
+        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.unsubscribed(chatRoomId, participant));
     }
 
     private void delete(String chatRoomId) {
