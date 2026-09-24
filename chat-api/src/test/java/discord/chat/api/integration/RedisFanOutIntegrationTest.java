@@ -16,13 +16,12 @@ import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.support.TestPropertySourceUtils;
@@ -189,19 +188,13 @@ class RedisFanOutIntegrationTest {
         WebSocketUserMessageSender.class
     })
     static class RedisTestConfig {
-        // Creates a connection factory for the test Redis server.
+        // Creates a cluster-aware connection factory for the local Redis nodes.
         @Bean
-        LettuceConnectionFactory redisConnectionFactory(
-            @Value("${spring.data.redis.host:localhost}") String redisHost,
-            @Value("${spring.data.redis.port:6379}") int redisPort
-        ) {
-            return new LettuceConnectionFactory(redisHost, redisPort);
-        }
-
-        // Creates the template used to publish messages to Redis.
-        @Bean
-        StringRedisTemplate redisTemplate(LettuceConnectionFactory redisConnectionFactory) {
-            return new StringRedisTemplate(redisConnectionFactory);
+        LettuceConnectionFactory redisConnectionFactory() {
+            RedisClusterConfiguration redisClusterConfiguration = new RedisClusterConfiguration(
+                List.of("localhost:7000", "localhost:7001", "localhost:7002")
+            );
+            return new LettuceConnectionFactory(redisClusterConfiguration);
         }
 
         // Creates the JSON mapper used to write and read messages.

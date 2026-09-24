@@ -3,76 +3,74 @@ package discord.chat.api.infrastructure.redis;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.session.ChatSessionEvent;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
+import io.lettuce.core.cluster.pubsub.RedisClusterPubSubAdapter;
+import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
-public class ChatRoomRedisBroker implements MessageListener {
+public class ChatRoomRedisBroker {
     private static final String TOPIC_SUFFIX = ":session-events";
 
-    private final RedisMessageListenerContainer redisMessageListenerContainer;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final StatefulRedisClusterConnection<String, String> redisClusterConnection;
+    private final StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection;
+    private final ThreadPoolTaskExecutor redisMessageExecutor;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final ChannelTopic channelTopic;
+    private final String topic;
 
     public ChatRoomRedisBroker(
-        RedisMessageListenerContainer redisMessageListenerContainer,
-        StringRedisTemplate stringRedisTemplate,
+        StatefulRedisClusterConnection<String, String> redisClusterConnection,
+        StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection,
+        ThreadPoolTaskExecutor redisMessageExecutor,
         ObjectMapper objectMapper,
         ApplicationEventPublisher applicationEventPublisher,
         @Value("${messaging.redis.topic-prefix}") String topicPrefix
     ) {
-        this.redisMessageListenerContainer = redisMessageListenerContainer;
-        this.stringRedisTemplate = stringRedisTemplate;
+        this.redisClusterConnection = redisClusterConnection;
+        this.redisClusterPubSubConnection = redisClusterPubSubConnection;
+        this.redisMessageExecutor = redisMessageExecutor;
         this.objectMapper = objectMapper;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.channelTopic = new ChannelTopic(topicPrefix + TOPIC_SUFFIX);
+        this.topic = topicPrefix + TOPIC_SUFFIX;
+        this.redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
+            @Override
+            public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
+                if (topic.equals(channel)) {
+                    redisMessageExecutor.execute(() -> onMessage(message));
+                }
+            }
+        });
     }
 
     @PostConstruct
     public void subscribe() {
-        redisMessageListenerContainer.addMessageListener(this, channelTopic);
+        redisClusterPubSubConnection.sync().ssubscribe(topic);
     }
 
     @PreDestroy
     public void unsubscribe() {
-        redisMessageListenerContainer.removeMessageListener(this, channelTopic);
+        redisClusterPubSubConnection.sync().sunsubscribe(topic);
     }
 
     public void publish(ChatSessionEvent event) throws JsonProcessingException {
-        Long subscriberCount = stringRedisTemplate.convertAndSend(
-            channelTopic.getTopic(),
-            objectMapper.writeValueAsString(event)
-        );
+        long subscriberCount = redisClusterConnection.sync().spublish(topic, objectMapper.writeValueAsString(event));
         if (subscriberCount == 0) {
             throw new IllegalStateException("No Redis subscribers for chat session events");
         }
     }
 
-    @Override
-    public void onMessage(@NonNull Message message, @Nullable byte[] pattern) {
+    private void onMessage(String message) {
         try {
-            String receivedTopic = new String(message.getChannel(), StandardCharsets.UTF_8);
-            if (!channelTopic.getTopic().equals(receivedTopic)) {
-                throw new IllegalArgumentException("Unexpected Redis chat session topic");
-            }
-
-            ChatSessionEvent event = objectMapper.readValue(message.getBody(), ChatSessionEvent.class);
+            ChatSessionEvent event = objectMapper.readValue(message, ChatSessionEvent.class);
             applicationEventPublisher.publishEvent(event);
         } catch (Exception exception) {
             log.error("Redis chat session event handling failed", exception);

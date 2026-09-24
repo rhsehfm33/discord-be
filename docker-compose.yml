@@ -26,17 +26,37 @@ services:
       start_period: 5s
     restart: unless-stopped
 
-  redis:
+  redis-cluster:
     image: redis:7.4-alpine
-    container_name: discord-redis
-    ports:
-      - "6379:6379"
+    container_name: discord-redis-cluster
+    command: ["sh", "-c", "
+      for port in 7000 7001 7002; do
+        mkdir -p /data/$$port;
+        redis-server --port $$port --cluster-enabled yes
+          --cluster-config-file /data/$$port/nodes.conf
+          --cluster-announce-ip 127.0.0.1
+          --cluster-announce-hostname localhost
+          --cluster-preferred-endpoint-type hostname
+          --appendonly yes --dir /data/$$port &
+      done;
+      for port in 7000 7001 7002; do
+        until redis-cli -p $$port ping | grep -q PONG; do sleep 1; done;
+      done;
+      if redis-cli -p 7000 cluster info | grep -q 'cluster_slots_assigned:0'; then
+        redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002
+          --cluster-replicas 0 --cluster-yes;
+      fi;
+      wait
+    "]
+    ports: ["7000:7000", "7001:7001", "7002:7002"]
+    volumes: [redis-cluster-data:/data]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -p 7000 cluster info | grep -q 'cluster_state:ok'"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
     restart: unless-stopped
 
 volumes:
   mongodb-data:
+  redis-cluster-data:

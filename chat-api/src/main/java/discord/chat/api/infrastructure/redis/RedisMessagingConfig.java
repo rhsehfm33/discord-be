@@ -1,9 +1,12 @@
 package discord.chat.api.infrastructure.redis;
 
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
+import io.lettuce.core.codec.StringCodec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
@@ -19,14 +22,23 @@ public class RedisMessagingConfig {
     }
 
     @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(
-        RedisConnectionFactory connectionFactory,
-        ThreadPoolTaskExecutor redisMessageExecutor
+    public StatefulRedisClusterConnection<String, String> redisClusterConnection(
+        LettuceConnectionFactory lettuceConnectionFactory
     ) {
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.setMaxSubscriptionRegistrationWaitingTime(5000);
-        container.setTaskExecutor(redisMessageExecutor);
-        return container;
+        return redisClusterClient(lettuceConnectionFactory).connect(StringCodec.UTF8);
+    }
+
+    @Bean
+    public StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection(
+        LettuceConnectionFactory lettuceConnectionFactory
+    ) {
+        return redisClusterClient(lettuceConnectionFactory).connectPubSub(StringCodec.UTF8);
+    }
+
+    private RedisClusterClient redisClusterClient(LettuceConnectionFactory lettuceConnectionFactory) {
+        if (lettuceConnectionFactory.getRequiredNativeClient() instanceof RedisClusterClient redisClusterClient) {
+            return redisClusterClient;
+        }
+        throw new IllegalStateException("Redis Cluster must be configured");
     }
 }

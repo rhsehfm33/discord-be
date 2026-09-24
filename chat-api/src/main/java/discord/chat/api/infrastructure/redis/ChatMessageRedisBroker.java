@@ -3,47 +3,53 @@ package discord.chat.api.infrastructure.redis;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
+import io.lettuce.core.cluster.pubsub.RedisClusterPubSubAdapter;
+import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
-public class ChatMessageRedisBroker implements MessageListener {
-    private final RedisMessageListenerContainer container;
-    private final StringRedisTemplate redisTemplate;
+public class ChatMessageRedisBroker {
+    private final StatefulRedisClusterConnection<String, String> redisClusterConnection;
+    private final StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection;
+    private final ThreadPoolTaskExecutor redisMessageExecutor;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher events;
     private final String topicPrefix;
 
     public ChatMessageRedisBroker(
-        RedisMessageListenerContainer container,
-        StringRedisTemplate redisTemplate,
+        StatefulRedisClusterConnection<String, String> redisClusterConnection,
+        StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection,
+        ThreadPoolTaskExecutor redisMessageExecutor,
         ObjectMapper objectMapper,
         ApplicationEventPublisher events,
         @Value("${messaging.redis.topic-prefix}") String topicPrefix
     ) {
-        this.container = container;
-        this.redisTemplate = redisTemplate;
+        this.redisClusterConnection = redisClusterConnection;
+        this.redisClusterPubSubConnection = redisClusterPubSubConnection;
+        this.redisMessageExecutor = redisMessageExecutor;
         this.objectMapper = objectMapper;
         this.events = events;
         this.topicPrefix = topicPrefix;
+        this.redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
+            @Override
+            public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
+                if (!channel.equals(topicPrefix + ":session-events")) {
+                    redisMessageExecutor.execute(() -> onMessage(channel, message));
+                }
+            }
+        });
     }
 
     public void subscribe(String chatRoomId) {
         try {
-            // Spring Data Redis waits for the subscription acknowledgment here.
-            container.addMessageListener(this, new ChannelTopic(topic(chatRoomId)));
+            redisClusterPubSubConnection.sync().ssubscribe(topic(chatRoomId));
             requireConnection();
         } catch (RuntimeException exception) {
             unsubscribe(chatRoomId);
@@ -52,22 +58,21 @@ public class ChatMessageRedisBroker implements MessageListener {
     }
 
     public void requireConnection() {
-        if (!container.isListening()) {
-            throw new IllegalStateException("Redis subscription connection is unavailable");
+        if (!redisClusterConnection.isOpen() || !redisClusterPubSubConnection.isOpen()) {
+            throw new IllegalStateException("Redis Cluster connection is unavailable");
         }
     }
 
     public void unsubscribe(String chatRoomId) {
         try {
-            container.removeMessageListener(this, new ChannelTopic(topic(chatRoomId)));
+            redisClusterPubSubConnection.sync().sunsubscribe(topic(chatRoomId));
         } catch (RuntimeException exception) {
-            // The container removes its local mapping before issuing UNSUBSCRIBE.
-            log.error("Redis unsubscribe failed: chatRoomId={}", chatRoomId, exception);
+            log.error("Redis shard unsubscribe failed: chatRoomId={}", chatRoomId, exception);
         }
     }
 
     public void publish(ChatMessageResponse message) throws JsonProcessingException {
-        Long subscribers = redisTemplate.convertAndSend(
+        long subscribers = redisClusterConnection.sync().spublish(
             topic(message.getChatRoomId()), objectMapper.writeValueAsString(message)
         );
         if (subscribers == 0) {
@@ -75,13 +80,9 @@ public class ChatMessageRedisBroker implements MessageListener {
         }
     }
 
-    @Override
-    public void onMessage(@NonNull Message message, @Nullable byte[] pattern) {
+    private void onMessage(String receivedTopic, String message) {
         try {
-            ChatMessageResponse response = objectMapper.readValue(
-                message.getBody(), ChatMessageResponse.class
-            );
-            String receivedTopic = new String(message.getChannel(), StandardCharsets.UTF_8);
+            ChatMessageResponse response = objectMapper.readValue(message, ChatMessageResponse.class);
             if (!receivedTopic.equals(topic(response.getChatRoomId()))) {
                 throw new IllegalArgumentException("Redis topic does not match message chat room");
             }
