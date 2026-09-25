@@ -7,6 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,10 +49,10 @@ public class FriendshipController {
         friendshipService.updateFriendship(authentication, friendshipRequest);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{friendshipId}")
     public void deleteFriendship(
-        Authentication authentication, @RequestParam String nickName
+        Authentication authentication, @PathVariable String friendshipId
     ) throws CustomIllegalArgumentException {
-        friendshipService.deleteFriendship(authentication, nickName);
+        friendshipService.deleteFriendship(authentication, friendshipId);
     }
 }

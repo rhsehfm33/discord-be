@@ -1,8 +1,15 @@
 package discord.chat.api.domain.friend.friendship;
 
-import java.util.List;
-import java.util.Optional;
-
+import discord.chat.api.interfaces.friend.friendship.FriendshipRequest;
+import discord.chat.api.interfaces.friend.friendship.FriendshipResponse;
+import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
+import discord.chat.common.infrastructure.friend.friendship.Friendship;
+import discord.chat.common.infrastructure.friend.friendship.FriendshipMongoRepository;
+import discord.chat.common.infrastructure.user.User;
+import discord.chat.common.infrastructure.user.UserMongoRepository;
+import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -15,16 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import discord.chat.common.infrastructure.friend.friendship.Friendship;
-import discord.chat.common.infrastructure.friend.friendship.FriendshipMongoRepository;
-import discord.chat.common.infrastructure.user.User;
-import discord.chat.common.infrastructure.user.UserMongoRepository;
-import discord.chat.common.exception.CustomEntityNotFoundException;
-import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
-import discord.chat.api.interfaces.friend.friendship.FriendshipRequest;
-import discord.chat.api.interfaces.friend.friendship.FriendshipResponse;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -80,7 +79,13 @@ public class FriendshipService {
         User fromUser = (User) authentication.getPrincipal();
         Friendship friendship = friendshipMongoRepository.findByIdAndFromUser(friendshipId, fromUser)
             .orElseThrow(() -> new CustomIllegalArgumentException(null, "Invalid friendship"));
+        if (friendship.getFriendStatus() != FriendStatus.FRIEND) {
+            throw new CustomIllegalArgumentException(null, "Invalid friendship");
+        }
+        User toUser = friendship.getToUser();
+        friendshipMongoRepository.findByFromUserAndToUser(toUser, fromUser)
+            .filter(reverseFriendship -> reverseFriendship.getFriendStatus() == FriendStatus.FRIEND)
+            .ifPresent(friendshipMongoRepository::delete);
         friendshipMongoRepository.delete(friendship);
     }
 }
-
