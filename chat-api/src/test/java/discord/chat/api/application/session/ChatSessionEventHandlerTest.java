@@ -53,7 +53,7 @@ class ChatSessionEventHandlerTest {
         when(channelAccessService.getTextChannelsBy("user", "joined-room"))
             .thenReturn(List.of(joinedRoomChannel));
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", "joined-room"));
+        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", null, "joined-room"));
 
         verify(chatSessionRegistry).join("user", List.of(joinedRoomChannel));
     }
@@ -63,7 +63,7 @@ class ChatSessionEventHandlerTest {
     void ignoreJoinForDisconnectedUser() {
         when(chatSessionRegistry.hasUserSessions("user")).thenReturn(false);
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", "room"));
+        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", null, "room"));
 
         verify(channelAccessService, never()).getTextChannelsBy("user", "room");
         verify(chatSessionRegistry, never()).join(anyString(), anyList());

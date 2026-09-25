@@ -26,13 +26,13 @@ public class ChatSessionEventHandler {
     @EventListener
     public void handle(ChatSessionEvent event) {
         switch (event.type()) {
-            case JOIN -> join(event.userId(), event.nickName(), event.chatRoomId());
+            case JOIN -> join(event.userId(), event.nickName(), event.imageUrl(), event.chatRoomId());
             case LEAVE -> leave(event.userId(), event.nickName(), event.chatRoomId());
             case DELETE -> delete(event.chatRoomId());
         }
     }
 
-    private void join(String userId, String nickName, String chatRoomId) {
+    private void join(String userId, String nickName, String imageUrl, String chatRoomId) {
         if (chatSessionRegistry.hasUserSessions(userId)) {
             List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
             chatSessionRegistry.join(userId, textChannels);
@@ -41,6 +41,7 @@ public class ChatSessionEventHandler {
         ChatRoomParticipantResponse participant = ChatRoomParticipantResponse.builder()
             .id(userId)
             .nickName(nickName)
+            .imageUrl(imageUrl)
             .build();
         spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.subscribed(chatRoomId, participant));
     }

@@ -76,7 +76,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         );
         String chatRoomId = chatRoomService.create(owner, request).getId();
         verify(chatSessionEventPublisher).publishAfterCommit(
-            ChatSessionEvent.join(owner.getName(), "owner", chatRoomId)
+            ChatSessionEvent.join(owner.getName(), "owner", null, chatRoomId)
         );
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
         assertThat(channelAccessService.getTextChannelsBy(owner.getName()))
@@ -89,7 +89,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
         verify(chatSessionEventPublisher).publishAfterCommit(
-            ChatSessionEvent.join(member.getName(), "member", chatRoomId)
+            ChatSessionEvent.join(member.getName(), "member", null, chatRoomId)
         );
         assertThat(channelAccessService.getTextChannelsBy(member.getName()))
             .extracting(channel -> channel.getChatRoom().getId())

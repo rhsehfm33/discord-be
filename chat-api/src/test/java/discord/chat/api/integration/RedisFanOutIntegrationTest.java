@@ -56,7 +56,7 @@ class RedisFanOutIntegrationTest {
             allowRoomAccess(secondServerContext, "user", "room", "channel");
 
             firstServerContext.getBean(ChatRoomRedisBroker.class)
-                .publish(ChatSessionEvent.join("user", "nickname", "room"));
+                .publish(ChatSessionEvent.join("user", "nickname", null, "room"));
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 assertThat(firstServerContext.getBean(ChatSessionRegistry.class)

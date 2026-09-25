@@ -39,7 +39,7 @@ public class ChatSubscriptionService {
         ChatSubscription chatSubscription = new ChatSubscription(user, chatRoom);
         chatSubscriptMongoRepository.save(chatSubscription);
         chatSessionEventPublisher.publishAfterCommit(
-            ChatSessionEvent.join(user.getId(), user.getNickName(), chatRoomId)
+            ChatSessionEvent.join(user.getId(), user.getNickName(), user.getImageUrl(), chatRoomId)
         );
 
         return new ChatRoomResponse(chatRoom, chatRoom.getOwner().equals(user));

@@ -57,6 +57,7 @@ public class ChatRoomParticipantService {
                 .builder()
                 .id(chatSubscription.getUser().getId())
                 .nickName(chatSubscription.getUser().getNickName())
+                .imageUrl(chatSubscription.getUser().getImageUrl())
                 .build()
             )
             .toList();
