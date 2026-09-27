@@ -25,13 +25,14 @@ public class UserIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private UserService userService;
 
+    // Verify a duplicate nickname is rejected after the first user is created.
     @Test
     void testUserDuplication() throws NoSuchFieldException, IllegalAccessException {
         UserRequest userRequest = new UserRequest();
         // InstanceSetter.setField(userRequest, "email", "test_user@gmail.com");
         InstanceSetter.setField(userRequest, "nickName", "test_user");
         InstanceSetter.setField(userRequest, "password", "asdqwe12#");
-        userService.createdUser(userRequest);
+        Assertions.assertDoesNotThrow(() -> userService.createdUser(userRequest));
         Assertions.assertThrows(DuplicateKeyException.class, () -> {
             userService.createdUser(userRequest);
         });

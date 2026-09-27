@@ -3,6 +3,7 @@ package discord.user.api.domain.user;
 import discord.user.api.interfaces.user.UserRequest;
 import discord.user.api.interfaces.user.UserResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomResourceConflictException;
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
 import discord.chat.common.util.RandomImageUrlGenerator;
@@ -40,7 +41,11 @@ public class UserService implements UserDetailsService {
             new EntityNotFoundException("Wrong user info"));
     }
 
-    public UserResponse createdUser(UserRequest dto) {
+    public UserResponse createdUser(UserRequest dto) throws CustomResourceConflictException {
+        if (dto.getEmail() != null && userMongoRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new CustomResourceConflictException("EMAIL_ALREADY_EXISTS", "Email is already in use");
+        }
+
         dto.setPassword(passwordEncoder.encode(dto.getPassword()));
         String imageUrl = dto.getImageUrl();
         if (imageUrl == null) {

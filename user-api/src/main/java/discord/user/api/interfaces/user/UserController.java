@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import discord.user.api.domain.user.UserService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomResourceConflictException;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -23,7 +24,8 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/users")
-    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest dto) {
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest dto)
+        throws CustomResourceConflictException {
         UserResponse createdUser = userService.createdUser(dto);
         return ResponseEntity.ok().body(createdUser);
     }
