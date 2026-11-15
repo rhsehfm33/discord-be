@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.api.application.message.MessageHistoryFacade;
+import discord.chat.api.application.message.ChatMessageFacade;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +22,8 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/chat-rooms/{chatRoomId}/text-channels/{textChannelId}/messages")
-public class MessageHistoryController {
-    private final MessageHistoryFacade messageHistoryFacade;
+public class ChatMessageController {
+    private final ChatMessageFacade chatMessageFacade;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -35,7 +35,7 @@ public class MessageHistoryController {
         @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit
     ) throws CustomIllegalArgumentException {
         User user = (User) authentication.getPrincipal();
-        return messageHistoryFacade.getMessages(
+        return chatMessageFacade.getMessages(
             user.getId(),
             chatRoomId,
             textChannelId,

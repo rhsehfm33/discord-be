@@ -8,12 +8,18 @@ import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessagePublishErrorResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.common.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @Slf4j
@@ -65,5 +71,41 @@ public class ChatMessageService {
             );
             webSocketUserMessageSender.send(sender.getId(), "/channel/errors", error);
         }
+    }
+
+    public List<ChatMessage> getMessages(
+        String chatRoomId,
+        String textChannelId,
+        String beforeMessageId,
+        int limit
+    ) throws CustomIllegalArgumentException {
+        if (limit < 1 || limit > 100) {
+            throw new CustomIllegalArgumentException(
+                "INVALID_MESSAGE_LIMIT",
+                "Message limit must be between 1 and 100"
+            );
+        }
+        if (beforeMessageId != null && !ObjectId.isValid(beforeMessageId)) {
+            throw new CustomIllegalArgumentException(
+                "INVALID_MESSAGE_CURSOR",
+                "Message cursor must be a valid ObjectId"
+            );
+        }
+
+        PageRequest page = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "id"));
+        if (beforeMessageId == null) {
+            return chatMessageRepository.findByChatRoomIdAndTextChannelId(
+                chatRoomId,
+                textChannelId,
+                page
+            );
+        }
+
+        return chatMessageRepository.findMessagesBefore(
+            chatRoomId,
+            textChannelId,
+            new ObjectId(beforeMessageId),
+            page
+        );
     }
 }

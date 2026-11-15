@@ -1,6 +1,6 @@
 package discord.chat.api.integration;
 
-import discord.chat.api.application.message.MessageHistoryFacade;
+import discord.chat.api.application.message.ChatMessageFacade;
 import discord.chat.api.infrastructure.client.userapi.UserApiClient;
 import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
 import discord.chat.api.infrastructure.message.ChatMessage;
@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
+class ChatMessageFacadeIntegrationTest extends BaseIntegrationTest {
     @Autowired
-    private MessageHistoryFacade messageHistoryFacade;
+    private ChatMessageFacade chatMessageFacade;
 
     @Autowired
     private ChatMessageRepository chatMessageRepository;
@@ -44,7 +44,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
         when(userApiClient.getUserProfiles(Set.of("sender", "missing")))
             .thenReturn(List.of(new InternalUserProfileResponse("sender", "Sender", "image.png")));
 
-        List<ChatMessageResponse> messageResponses = messageHistoryFacade.getMessages(
+        List<ChatMessageResponse> messageResponses = chatMessageFacade.getMessages(
             "user", "room", "channel", null, 50
         );
 
@@ -64,7 +64,7 @@ class MessageHistoryFacadeIntegrationTest extends BaseIntegrationTest {
     void getMessagesRejectsUnauthorizedChannels() {
         when(channelAccessService.hasTextChannelAccess("user", "room", "channel")).thenReturn(false);
 
-        assertThatThrownBy(() -> messageHistoryFacade.getMessages(
+        assertThatThrownBy(() -> chatMessageFacade.getMessages(
             "user", "room", "channel", null, 50
         )).isInstanceOf(AccessDeniedException.class);
     }

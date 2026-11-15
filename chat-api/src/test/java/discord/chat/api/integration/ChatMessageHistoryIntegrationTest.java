@@ -1,10 +1,9 @@
 package discord.chat.api.integration;
 
 import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.api.domain.message.MessageHistoryService;
+import discord.chat.api.application.message.ChatMessageService;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
-import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.support.BaseIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class MessageHistoryIntegrationTest extends BaseIntegrationTest {
+class ChatMessageHistoryIntegrationTest extends BaseIntegrationTest {
     @Autowired
-    private MessageHistoryService messageHistoryService;
+    private ChatMessageService chatMessageService;
 
     @Autowired
     private ChatMessageRepository chatMessageRepository;
@@ -34,10 +33,10 @@ class MessageHistoryIntegrationTest extends BaseIntegrationTest {
             new ChatMessage("sender", "room", "other-channel", "not-included")
         );
 
-        List<ChatMessage> firstPageMessages = messageHistoryService.getMessages(
+        List<ChatMessage> firstPageMessages = chatMessageService.getMessages(
             "room", "channel", null, 50
         );
-        List<ChatMessage> secondPageMessages = messageHistoryService.getMessages(
+        List<ChatMessage> secondPageMessages = chatMessageService.getMessages(
             "room", "channel", firstPageMessages.get(firstPageMessages.size() - 1).getId(), 50
         );
 
@@ -54,11 +53,11 @@ class MessageHistoryIntegrationTest extends BaseIntegrationTest {
     // Checks that invalid message cursors and page sizes are rejected.
     @Test
     void getMessagesRejectsInvalidCursorAndLimit() {
-        assertThatThrownBy(() -> messageHistoryService.getMessages("room", "channel", "bad", 50))
+        assertThatThrownBy(() -> chatMessageService.getMessages("room", "channel", "bad", 50))
             .isInstanceOf(CustomIllegalArgumentException.class);
-        assertThatThrownBy(() -> messageHistoryService.getMessages("room", "channel", null, 0))
+        assertThatThrownBy(() -> chatMessageService.getMessages("room", "channel", null, 0))
             .isInstanceOf(CustomIllegalArgumentException.class);
-        assertThatThrownBy(() -> messageHistoryService.getMessages("room", "channel", null, 101))
+        assertThatThrownBy(() -> chatMessageService.getMessages("room", "channel", null, 101))
             .isInstanceOf(CustomIllegalArgumentException.class);
     }
 }

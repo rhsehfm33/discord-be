@@ -10,7 +10,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import discord.chat.api.domain.message.MessageHistoryService;
 import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
 import discord.chat.api.infrastructure.client.userapi.UserApiClient;
 import discord.chat.api.infrastructure.message.ChatMessage;
@@ -21,10 +20,10 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class MessageHistoryFacade {
+public class ChatMessageFacade {
     private final UserApiClient userApiClient;
     private final ChannelAccessService channelAccessService;
-    private final MessageHistoryService messageHistoryService;
+    private final ChatMessageService chatMessageService;
 
     public List<ChatMessageResponse> getMessages(
         String userId,
@@ -35,7 +34,7 @@ public class MessageHistoryFacade {
     ) throws CustomIllegalArgumentException {
         verifyChannelAccess(userId, chatRoomId, textChannelId);
 
-        List<ChatMessage> messages = messageHistoryService.getMessages(
+        List<ChatMessage> messages = chatMessageService.getMessages(
             chatRoomId,
             textChannelId,
             beforeMessageId,
