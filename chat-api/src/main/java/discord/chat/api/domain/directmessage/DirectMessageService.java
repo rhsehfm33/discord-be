@@ -54,9 +54,6 @@ public class DirectMessageService {
         String friendId = directMessage.getOtherParticipantId(user.getId());
         User friend = userMongoRepository.findById(friendId)
             .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "User not found"));
-        friendshipMongoRepository.findByFromUserAndToUser(user, friend)
-            .filter(friendship -> friendship.getFriendStatus() == FriendStatus.FRIEND)
-            .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Friendship not found"));
         return new DirectMessageResponse(directMessage.getId(), new SimpleUserResponseDto(friend));
     }
 }

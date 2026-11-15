@@ -21,4 +21,9 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessage, Stri
         ObjectId id,
         Pageable pageable
     );
+
+    List<ChatMessage> findByDirectMessageId(String directMessageId, Pageable pageable);
+
+    @Query("{ 'direct_message_id': ?0, '_id': { '$lt': ?1 } }")
+    List<ChatMessage> findDirectMessagesBefore(String directMessageId, ObjectId id, Pageable pageable);
 }
