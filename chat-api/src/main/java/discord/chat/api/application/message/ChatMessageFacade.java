@@ -13,10 +13,8 @@ import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
 import discord.chat.api.infrastructure.client.userapi.UserApiClient;
 import discord.chat.api.infrastructure.message.ChatMessage;
-import discord.chat.api.interfaces.directmessage.DirectMessageMessageResponse;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
-import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;
 
@@ -49,16 +47,6 @@ public class ChatMessageFacade {
             .toList();
     }
 
-    public List<DirectMessageMessageResponse> getDirectMessageHistory(
-        String userId, String directMessageId, String beforeMessageId
-    ) throws CustomEntityNotFoundException, CustomIllegalArgumentException {
-        List<ChatMessage> messages = chatMessageService.getDirectMessageHistory(userId, directMessageId, beforeMessageId);
-        Map<String, InternalUserProfileResponse> profilesById = getProfilesById(messages);
-        return messages.stream()
-            .map(message -> toDirectMessageResponse(message, profilesById.get(message.getSenderId())))
-            .toList();
-    }
-
     private Map<String, InternalUserProfileResponse> getProfilesById(List<ChatMessage> messages) {
         Set<String> senderIds = messages.stream()
             .map(ChatMessage::getSenderId)
@@ -88,15 +76,6 @@ public class ChatMessageFacade {
             sender,
             message.getContent(),
             message.getCreatedAt()
-        );
-    }
-
-    private DirectMessageMessageResponse toDirectMessageResponse(
-        ChatMessage message, InternalUserProfileResponse profile
-    ) {
-        MessageSenderResponse sender = toSenderResponse(message, profile);
-        return new DirectMessageMessageResponse(
-            message.getId(), message.getDirectMessageId(), sender, message.getContent(), message.getCreatedAt()
         );
     }
 

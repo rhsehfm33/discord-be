@@ -1,6 +1,6 @@
 package discord.chat.api.interfaces.directmessage;
 
-import discord.chat.api.application.message.ChatMessageService;
+import discord.chat.api.domain.directmessage.DirectMessageService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Controller;
 @Controller
 @RequiredArgsConstructor
 public class DirectMessageSocketController {
-    private final ChatMessageService chatMessageService;
+    private final DirectMessageService directMessageService;
 
     @MessageMapping("/sendDirectMessage")
     @SendToUser(value = "/channel/errors", broadcast = false)
@@ -20,7 +20,7 @@ public class DirectMessageSocketController {
         @Valid DirectMessageMessageRequest request,
         Authentication authentication
     ) throws CustomEntityNotFoundException {
-        boolean saved = chatMessageService.sendDirectMessage(
+        boolean saved = directMessageService.sendDirectMessage(
             authentication, request.directMessageId(), request.content()
         );
         if (!saved) {

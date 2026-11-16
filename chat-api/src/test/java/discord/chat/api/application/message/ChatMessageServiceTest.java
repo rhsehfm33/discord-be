@@ -1,11 +1,9 @@
 package discord.chat.api.application.message;
 
-import discord.chat.common.infrastructure.chat.directmessage.DirectMessageMongoRepository;
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
-import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
@@ -38,10 +36,6 @@ class ChatMessageServiceTest {
     private WebSocketUserMessageSender webSocketUserMessageSender;
     @Mock
     private ChatMessageRedisBroker chatMessageRedisBroker;
-    @Mock
-    private DirectMessageRedisBroker directMessageRedisBroker;
-    @Mock
-    private DirectMessageMongoRepository directMessageMongoRepository;
     private ChatMessage storedMessage;
 
     private ChatMessageService chatMessageService;
@@ -51,7 +45,7 @@ class ChatMessageServiceTest {
     void setUp() {
         chatMessageService = new ChatMessageService(
             chatSessionRegistry, chatMessageRepository, webSocketUserMessageSender,
-            chatMessageRedisBroker, directMessageRedisBroker, directMessageMongoRepository
+            chatMessageRedisBroker
         );
     }
 
