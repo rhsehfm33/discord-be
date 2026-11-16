@@ -2,7 +2,7 @@ package discord.chat.api.interfaces.directmessage;
 
 import java.util.List;
 
-import discord.chat.api.application.directmessage.DirectMessageFacade;
+import discord.chat.api.application.message.DirectMessageFacade;
 import discord.chat.api.domain.directmessage.DirectMessageService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;

@@ -1,4 +1,4 @@
-package discord.chat.api.application.directmessage;
+package discord.chat.api.application.message;
 
 import discord.chat.api.domain.directmessage.DirectMessageService;
 import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
