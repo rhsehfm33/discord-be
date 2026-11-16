@@ -1,6 +1,5 @@
-package discord.chat.api.integration;
+package discord.chat.api.application.message;
 
-import discord.chat.api.application.message.ChatMessageFacade;
 import discord.chat.api.infrastructure.client.userapi.UserApiClient;
 import discord.chat.api.infrastructure.client.userapi.InternalUserProfileResponse;
 import discord.chat.api.infrastructure.message.ChatMessage;

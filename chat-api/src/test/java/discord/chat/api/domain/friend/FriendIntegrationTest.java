@@ -1,4 +1,4 @@
-package discord.chat.api.integration;
+package discord.chat.api.domain.friend;
 
 import java.util.List;
 

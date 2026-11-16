@@ -1,6 +1,5 @@
-package discord.chat.api.integration;
+package discord.chat.api.domain.directmessage;
 
-import discord.chat.api.domain.directmessage.DirectMessageService;
 import discord.chat.api.interfaces.directmessage.DirectMessageResponse;
 import discord.chat.api.support.BaseIntegrationTest;
 import discord.chat.common.infrastructure.chat.directmessage.DirectMessageMongoRepository;

@@ -1,11 +1,9 @@
-package discord.chat.api.integration;
+package discord.chat.api.domain.chat.room;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.domain.chat.channel.TextChannelService;
-import discord.chat.api.domain.chat.room.ChatRoomParticipantService;
-import discord.chat.api.domain.chat.room.ChatRoomService;
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
 import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
 import discord.chat.api.interfaces.chat.channel.TextChannelRequest;

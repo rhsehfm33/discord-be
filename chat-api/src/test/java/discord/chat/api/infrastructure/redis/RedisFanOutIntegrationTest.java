@@ -1,14 +1,10 @@
-package discord.chat.api.integration;
+package discord.chat.api.infrastructure.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.message.ChatRoomMessageDelivery;
 import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.application.session.ChatSessionEventHandler;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
-import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
-import discord.chat.api.infrastructure.redis.ChatRoomRedisBroker;
-import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.message.ChatMessageResponse;

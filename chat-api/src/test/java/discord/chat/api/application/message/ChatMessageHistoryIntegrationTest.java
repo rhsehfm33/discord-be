@@ -1,7 +1,6 @@
-package discord.chat.api.integration;
+package discord.chat.api.application.message;
 
 import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.api.application.message.ChatMessageService;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.support.BaseIntegrationTest;
