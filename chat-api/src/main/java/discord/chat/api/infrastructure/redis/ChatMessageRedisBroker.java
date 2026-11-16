@@ -21,7 +21,7 @@ public class ChatMessageRedisBroker {
     private final ThreadPoolTaskExecutor redisMessageExecutor;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher events;
-    private final String topicPrefix;
+    private final String chatRoomMessageTopic;
 
     public ChatMessageRedisBroker(
         StatefulRedisClusterConnection<String, String> redisClusterConnection,
@@ -29,18 +29,18 @@ public class ChatMessageRedisBroker {
         ThreadPoolTaskExecutor redisMessageExecutor,
         ObjectMapper objectMapper,
         ApplicationEventPublisher events,
-        @Value("${messaging.redis.topic-prefix}") String topicPrefix
+        @Value("${messaging.redis.chat-room-message-topic}") String chatRoomMessageTopic
     ) {
         this.redisClusterConnection = redisClusterConnection;
         this.redisClusterPubSubConnection = redisClusterPubSubConnection;
         this.redisMessageExecutor = redisMessageExecutor;
         this.objectMapper = objectMapper;
         this.events = events;
-        this.topicPrefix = topicPrefix;
+        this.chatRoomMessageTopic = chatRoomMessageTopic;
         this.redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
             @Override
             public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
-                if (!channel.equals(topicPrefix + ":session-events")) {
+                if (channel.startsWith(chatRoomMessageTopic)) {
                     redisMessageExecutor.execute(() -> onMessage(channel, message));
                 }
             }
@@ -93,6 +93,6 @@ public class ChatMessageRedisBroker {
     }
 
     private String topic(String chatRoomId) {
-        return topicPrefix + ":" + chatRoomId;
+        return chatRoomMessageTopic + ":" + chatRoomId;
     }
 }

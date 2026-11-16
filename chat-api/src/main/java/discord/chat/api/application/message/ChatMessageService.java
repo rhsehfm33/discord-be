@@ -3,6 +3,7 @@ package discord.chat.api.application.message;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.directmessage.DirectMessageMessageResponse;
@@ -11,15 +12,16 @@ import discord.chat.api.interfaces.message.MessagePublishErrorResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.infrastructure.chat.directmessage.DirectMessage;
 import discord.chat.common.infrastructure.chat.directmessage.DirectMessageMongoRepository;
 import discord.chat.common.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,7 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final WebSocketUserMessageSender webSocketUserMessageSender;
     private final ChatMessageRedisBroker chatMessageRedisBroker;
+    private final DirectMessageRedisBroker directMessageRedisBroker;
     private final DirectMessageMongoRepository directMessageMongoRepository;
 
     public void send(
@@ -111,8 +114,9 @@ public class ChatMessageService {
         );
     }
 
-    public List<ChatMessage> getDirectMessageHistory(String directMessageId, String beforeMessageId)
-        throws CustomIllegalArgumentException {
+    public List<ChatMessage> getDirectMessageHistory(String userId, String directMessageId, String beforeMessageId)
+        throws CustomEntityNotFoundException, CustomIllegalArgumentException {
+        requireDirectMessageParticipant(userId, directMessageId);
         validateCursor(beforeMessageId);
         PageRequest page = PageRequest.of(0, DIRECT_MESSAGE_PAGE_SIZE, Sort.by(Sort.Direction.DESC, "id"));
         if (beforeMessageId == null) {
@@ -123,22 +127,35 @@ public class ChatMessageService {
         );
     }
 
-    @PreAuthorize("isAuthenticated()")
-    public DirectMessageMessageResponse saveDirectMessage(
+    public boolean sendDirectMessage(
         Authentication authentication, String directMessageId, String content
     ) throws CustomEntityNotFoundException {
         User sender = (User) authentication.getPrincipal();
-        directMessageMongoRepository.findById(directMessageId)
-            .filter(directMessage -> directMessage.hasParticipant(sender.getId()))
-            .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Direct message not found"));
+        DirectMessage directMessage = requireDirectMessageParticipant(sender.getId(), directMessageId);
 
-        ChatMessage message = chatMessageRepository.save(new ChatMessage(sender.getId(), directMessageId, content));
+        ChatMessage storedMessage;
+        try {
+            storedMessage = chatMessageRepository.save(new ChatMessage(sender.getId(), directMessageId, content));
+        } catch (DataAccessException exception) {
+            log.error("Direct message could not be saved: directMessageId={}", directMessageId, exception);
+            return false;
+        }
         MessageSenderResponse messageSender = new MessageSenderResponse(
             sender.getId(), sender.getNickName(), sender.getImageUrl()
         );
-        return new DirectMessageMessageResponse(
-            message.getId(), directMessageId, messageSender, message.getContent(), message.getCreatedAt()
+        DirectMessageMessageResponse response = new DirectMessageMessageResponse(
+            storedMessage.getId(), directMessageId, messageSender, storedMessage.getContent(),
+            storedMessage.getCreatedAt()
         );
+        directMessageRedisBroker.publish(response, directMessage.getParticipantIds());
+        return true;
+    }
+
+    private DirectMessage requireDirectMessageParticipant(String userId, String directMessageId)
+        throws CustomEntityNotFoundException {
+        return directMessageMongoRepository.findById(directMessageId)
+            .filter(directMessage -> directMessage.hasParticipant(userId))
+            .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Direct message not found"));
     }
 
     private void validateCursor(String beforeMessageId) throws CustomIllegalArgumentException {

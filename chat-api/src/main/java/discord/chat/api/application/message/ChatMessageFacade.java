@@ -18,7 +18,6 @@ import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.common.infrastructure.chat.directmessage.DirectMessageMongoRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -27,7 +26,6 @@ public class ChatMessageFacade {
     private final UserApiClient userApiClient;
     private final ChannelAccessService channelAccessService;
     private final ChatMessageService chatMessageService;
-    private final DirectMessageMongoRepository directMessageMongoRepository;
 
     public List<ChatMessageResponse> getMessages(
         String userId,
@@ -54,11 +52,7 @@ public class ChatMessageFacade {
     public List<DirectMessageMessageResponse> getDirectMessageHistory(
         String userId, String directMessageId, String beforeMessageId
     ) throws CustomEntityNotFoundException, CustomIllegalArgumentException {
-        directMessageMongoRepository.findById(directMessageId)
-            .filter(directMessage -> directMessage.hasParticipant(userId))
-            .orElseThrow(() -> new CustomEntityNotFoundException("NOT_FOUND", "Direct message not found"));
-
-        List<ChatMessage> messages = chatMessageService.getDirectMessageHistory(directMessageId, beforeMessageId);
+        List<ChatMessage> messages = chatMessageService.getDirectMessageHistory(userId, directMessageId, beforeMessageId);
         Map<String, InternalUserProfileResponse> profilesById = getProfilesById(messages);
         return messages.stream()
             .map(message -> toDirectMessageResponse(message, profilesById.get(message.getSenderId())))

@@ -3,7 +3,6 @@ package discord.chat.api.interfaces.directmessage;
 import java.util.List;
 
 import discord.chat.api.application.message.ChatMessageFacade;
-import discord.chat.api.application.message.ChatMessageService;
 import discord.chat.api.domain.directmessage.DirectMessageService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/direct-messages")
 public class DirectMessageController {
     private final DirectMessageService directMessageService;
-    private final ChatMessageService chatMessageService;
     private final ChatMessageFacade chatMessageFacade;
 
     @PostMapping
@@ -39,15 +37,6 @@ public class DirectMessageController {
     public DirectMessageResponse get(Authentication authentication, @PathVariable String directMessageId)
         throws CustomEntityNotFoundException {
         return directMessageService.get(authentication, directMessageId);
-    }
-
-    @PostMapping("/{directMessageId}/messages")
-    public DirectMessageMessageResponse saveMessage(
-        Authentication authentication,
-        @PathVariable String directMessageId,
-        @Valid @RequestBody DirectMessageMessageRequest request
-    ) throws CustomEntityNotFoundException {
-        return chatMessageService.saveDirectMessage(authentication, directMessageId, request.content());
     }
 
     @GetMapping("/{directMessageId}/messages")

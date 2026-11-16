@@ -6,6 +6,7 @@ import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.application.session.ChatSessionEventHandler;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.api.infrastructure.redis.ChatRoomRedisBroker;
 import discord.chat.api.infrastructure.redis.RedisMessagingConfig;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
@@ -44,11 +45,11 @@ class RedisFanOutIntegrationTest {
     // Checks that a membership event updates one user's sessions across server instances.
     @Test
     void updateUserSessionsAcrossInstances() throws Exception {
-        String redisTopicPrefix = "discord:test:chat-room:" + UUID.randomUUID();
+        String redisNamespace = "discord:test:redis-fan-out:" + UUID.randomUUID();
 
         try (
-            var firstServerContext = createInstance(redisTopicPrefix);
-            var secondServerContext = createInstance(redisTopicPrefix)
+            var firstServerContext = createInstance(redisNamespace);
+            var secondServerContext = createInstance(redisNamespace)
         ) {
             registerEmptySession(firstServerContext, "user", "first");
             registerEmptySession(secondServerContext, "user", "second");
@@ -70,12 +71,12 @@ class RedisFanOutIntegrationTest {
     // Checks that Redis delivers to both servers in the room, but not another room.
     @Test
     void deliverToBothInstancesInSameRoomOnly() throws Exception {
-        String redisTopicPrefix = "discord:test:chat-room:" + UUID.randomUUID();
+        String redisNamespace = "discord:test:redis-fan-out:" + UUID.randomUUID();
 
         try (
-            var firstServerContext = createInstance(redisTopicPrefix);
-            var secondServerContext = createInstance(redisTopicPrefix);
-            var otherRoomServerContext = createInstance(redisTopicPrefix)
+            var firstServerContext = createInstance(redisNamespace);
+            var secondServerContext = createInstance(redisNamespace);
+            var otherRoomServerContext = createInstance(redisNamespace)
         ) {
             registerSession(firstServerContext, "first-user", "first", "room", "channel");
             registerSession(secondServerContext, "second-user", "second", "room", "channel");
@@ -102,11 +103,14 @@ class RedisFanOutIntegrationTest {
     }
 
     // Starts a separate Spring context for one message server.
-    private AnnotationConfigApplicationContext createInstance(String redisTopicPrefix) {
+    private AnnotationConfigApplicationContext createInstance(String redisNamespace) {
         var serverContext = new AnnotationConfigApplicationContext();
         serverContext.getEnvironment().setActiveProfiles("test");
         TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
-            serverContext, "messaging.redis.topic-prefix=" + redisTopicPrefix
+            serverContext,
+            "messaging.redis.chat-room-message-topic=" + redisNamespace + ":chat-room:message",
+            "messaging.redis.chat-room-session-topic=" + redisNamespace + ":chat-room:session",
+            "messaging.redis.direct-message-topic=" + redisNamespace + ":direct-message"
         );
         serverContext.register(RedisTestConfig.class);
         try {
@@ -181,6 +185,7 @@ class RedisFanOutIntegrationTest {
     @Import({
         RedisMessagingConfig.class,
         ChatMessageRedisBroker.class,
+        DirectMessageRedisBroker.class,
         ChatRoomRedisBroker.class,
         ChatSessionEventHandler.class,
         ChatSessionRegistry.class,

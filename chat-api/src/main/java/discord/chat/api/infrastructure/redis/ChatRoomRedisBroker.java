@@ -18,14 +18,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class ChatRoomRedisBroker {
-    private static final String TOPIC_SUFFIX = ":session-events";
-
     private final StatefulRedisClusterConnection<String, String> redisClusterConnection;
     private final StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection;
     private final ThreadPoolTaskExecutor redisMessageExecutor;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final String topic;
+    private final String chatRoomSessionTopic;
 
     public ChatRoomRedisBroker(
         StatefulRedisClusterConnection<String, String> redisClusterConnection,
@@ -33,18 +31,18 @@ public class ChatRoomRedisBroker {
         ThreadPoolTaskExecutor redisMessageExecutor,
         ObjectMapper objectMapper,
         ApplicationEventPublisher applicationEventPublisher,
-        @Value("${messaging.redis.topic-prefix}") String topicPrefix
+        @Value("${messaging.redis.chat-room-session-topic}") String chatRoomSessionTopic
     ) {
         this.redisClusterConnection = redisClusterConnection;
         this.redisClusterPubSubConnection = redisClusterPubSubConnection;
         this.redisMessageExecutor = redisMessageExecutor;
         this.objectMapper = objectMapper;
         this.applicationEventPublisher = applicationEventPublisher;
-        this.topic = topicPrefix + TOPIC_SUFFIX;
+        this.chatRoomSessionTopic = chatRoomSessionTopic;
         this.redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
             @Override
             public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
-                if (topic.equals(channel)) {
+                if (chatRoomSessionTopic.equals(channel)) {
                     redisMessageExecutor.execute(() -> onMessage(message));
                 }
             }
@@ -53,16 +51,18 @@ public class ChatRoomRedisBroker {
 
     @PostConstruct
     public void subscribe() {
-        redisClusterPubSubConnection.sync().ssubscribe(topic);
+        redisClusterPubSubConnection.sync().ssubscribe(chatRoomSessionTopic);
     }
 
     @PreDestroy
     public void unsubscribe() {
-        redisClusterPubSubConnection.sync().sunsubscribe(topic);
+        redisClusterPubSubConnection.sync().sunsubscribe(chatRoomSessionTopic);
     }
 
     public void publish(ChatSessionEvent event) throws JsonProcessingException {
-        long subscriberCount = redisClusterConnection.sync().spublish(topic, objectMapper.writeValueAsString(event));
+        long subscriberCount = redisClusterConnection.sync().spublish(
+            chatRoomSessionTopic, objectMapper.writeValueAsString(event)
+        );
         if (subscriberCount == 0) {
             throw new IllegalStateException("No Redis subscribers for chat session events");
         }

@@ -22,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PERSONAL_CHANNEL_DESTINATION = "/user/channel";
+    private static final String DIRECT_MESSAGE_DESTINATION = "/user/channel/direct-messages";
     private static final String CHAT_ROOM_EVENT_DESTINATION = "/user/channel/events";
     private static final String PUBLISH_ERROR_DESTINATION = "/user/channel/errors";
     private static final String USER_ID_SESSION_ATTRIBUTE = "userId";
@@ -40,8 +41,9 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         } else if (StompCommand.SUBSCRIBE.equals(command)) {
             validateSubscription(accessor);
         } else if (StompCommand.SEND.equals(command)
-            && !"/app/sendText".equals(accessor.getDestination())) {
-            throw new IllegalArgumentException("Messages must be sent through /app/sendText");
+            && !"/app/sendText".equals(accessor.getDestination())
+            && !"/app/sendDirectMessage".equals(accessor.getDestination())) {
+            throw new IllegalArgumentException("Unsupported message destination");
         } else if (StompCommand.DISCONNECT.equals(command)) {
             removeSession(accessor);
         }
@@ -100,6 +102,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
 
     private void validateSubscription(StompHeaderAccessor accessor) {
         if (!PERSONAL_CHANNEL_DESTINATION.equals(accessor.getDestination())
+            && !DIRECT_MESSAGE_DESTINATION.equals(accessor.getDestination())
             && !CHAT_ROOM_EVENT_DESTINATION.equals(accessor.getDestination())
             && !PUBLISH_ERROR_DESTINATION.equals(accessor.getDestination())) {
             throw new IllegalArgumentException("Only the personal channel destination may be subscribed");

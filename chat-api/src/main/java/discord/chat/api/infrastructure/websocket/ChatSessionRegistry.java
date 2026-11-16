@@ -1,6 +1,7 @@
 package discord.chat.api.infrastructure.websocket;
 
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class ChatSessionRegistry {
     private final ChatMessageRedisBroker chatMessageRedisBroker;
+    private final DirectMessageRedisBroker directMessageRedisBroker;
     private final Map<String, Set<String>> chatRoomIdToUserIds = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> userIdToChatRoomIds = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> userIdToSessionIds = new ConcurrentHashMap<>();
@@ -40,6 +42,7 @@ public class ChatSessionRegistry {
                 throw exception;
             }
         }
+        directMessageRedisBroker.subscribe(userId);
     }
 
     public synchronized void join(String userId, List<TextChannel> accessibleChannels) {
@@ -103,6 +106,7 @@ public class ChatSessionRegistry {
         for (String chatRoomId : chatRoomIds) {
             removeUserFromChatRoom(userId, chatRoomId);
         }
+        directMessageRedisBroker.unsubscribe(userId);
     }
 
     public synchronized Set<String> getUserIds(String chatRoomId) {

@@ -1,6 +1,7 @@
 package discord.chat.api.infrastructure.websocket;
 
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
+import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,13 +20,15 @@ import static org.mockito.Mockito.*;
 class ChatSessionRegistryTest {
     @Mock
     private ChatMessageRedisBroker chatMessageRedisBroker;
+    @Mock
+    private DirectMessageRedisBroker directMessageRedisBroker;
 
     private ChatSessionRegistry chatSessionRegistry;
 
-    // Creates the session registry with a mocked Redis broker.
+    // Creates the session registry with mocked Redis brokers.
     @BeforeEach
     void setUp() {
-        chatSessionRegistry = new ChatSessionRegistry(chatMessageRedisBroker);
+        chatSessionRegistry = new ChatSessionRegistry(chatMessageRedisBroker, directMessageRedisBroker);
     }
 
     // Checks that Redis remains subscribed until the room's last local user disconnects.
