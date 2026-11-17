@@ -24,6 +24,7 @@ import discord.chat.common.infrastructure.friend.invitation.FriendInvitationMong
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.api.interfaces.friend.invitation.FriendInvitationResponse;
 import lombok.RequiredArgsConstructor;
 
@@ -38,10 +39,14 @@ public class FriendInvitationService {
     private final MongoTemplate mongoTemplate;
 
     public void invite(Authentication authentication, String toUserNickName)
-        throws CustomEntityNotFoundException {
+        throws CustomEntityNotFoundException, CustomIllegalArgumentException {
         User fromUser = (User) authentication.getPrincipal();
         User toUser = userMongoRepository.findByNickName(toUserNickName)
             .orElseThrow(() -> new CustomEntityNotFoundException(null, "Invalid nickname: " + toUserNickName));
+
+        if (fromUser.getId().equals(toUser.getId())) {
+            throw new CustomIllegalArgumentException(null, "You cannot send a friend request to yourself.");
+        }
 
         Optional<FriendInvitation> friendInvitation = friendInvitationMongoRepository
             .findByFromUserAndToUser(fromUser, toUser);

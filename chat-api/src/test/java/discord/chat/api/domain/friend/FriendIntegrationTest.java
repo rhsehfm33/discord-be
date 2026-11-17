@@ -3,6 +3,7 @@ package discord.chat.api.domain.friend;
 import java.util.List;
 
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import discord.chat.common.infrastructure.friend.friendship.FriendStatus;
 import discord.chat.common.infrastructure.friend.friendship.FriendshipMongoRepository;
 import discord.chat.common.infrastructure.friend.invitation.FriendInvitationMongoRepository;
@@ -53,6 +54,17 @@ class FriendIntegrationTest extends BaseIntegrationTest {
     void createUsers() {
         recipient = createUserAndSetAuthentication("recipient");
         sender = createUserAndSetAuthentication("sender");
+    }
+
+    // Checks that a self-invitation is rejected without saving an invitation.
+    @Test
+    void rejectsSelfInvitationWithoutSaving() {
+        User senderUser = (User) sender.getPrincipal();
+
+        assertThatThrownBy(() -> friendInvitationService.invite(sender, senderUser.getNickName()))
+            .isInstanceOf(CustomIllegalArgumentException.class)
+            .hasMessage("You cannot send a friend request to yourself.");
+        assertThat(friendInvitationMongoRepository.count()).isZero();
     }
 
     // Checks that accepting an invitation creates both directional friendship records.

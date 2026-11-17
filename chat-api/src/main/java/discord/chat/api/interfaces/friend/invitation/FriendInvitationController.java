@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import discord.chat.api.domain.friend.invitation.FriendInvitationService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomIllegalArgumentException;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -27,7 +28,7 @@ public class FriendInvitationController {
 
      @PostMapping
      void invite(Authentication authentication, FriendInvitationRequest friendInvitationRequest)
-         throws CustomEntityNotFoundException {
+         throws CustomEntityNotFoundException, CustomIllegalArgumentException {
          friendInvitationService.invite(authentication, friendInvitationRequest.getNickName());
      }
 
