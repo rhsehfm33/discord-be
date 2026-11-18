@@ -20,6 +20,8 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenResolv
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -54,6 +56,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         LoginSuccessHandler loginSuccessHandler,
+        AccessTokenCookieFactory accessTokenCookieFactory,
         BearerTokenResolver bearerTokenResolver,
         PostJwtAuthenticationFilter postJwtAuthenticationFilter
     ) throws Exception {
@@ -71,6 +74,11 @@ public class SecurityConfig {
                 .successHandler(loginSuccessHandler)
                 .usernameParameter("email")
                 .permitAll())
+            .logout(logout -> logout
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
+                .addLogoutHandler((request, response, authentication) ->
+                    response.addCookie(accessTokenCookieFactory.create("", 0)))
+                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(new JwtAuthenticationConverter())
