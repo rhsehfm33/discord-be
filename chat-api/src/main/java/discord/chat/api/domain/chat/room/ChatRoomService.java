@@ -50,7 +50,7 @@ public class ChatRoomService {
         );
         newChatRoom = chatRoomMongoRepository.save(newChatRoom);
         chatSubscriptMongoRepository.save(new ChatSubscription(owner, newChatRoom));
-        TextChannel textChannel = new TextChannel("일반 채팅", owner, newChatRoom);
+        TextChannel textChannel = new TextChannel("general", owner, newChatRoom);
         textChannelMongoRepository.save(textChannel);
         chatSessionEventPublisher.publishAfterCommit(
             ChatSessionEvent.join(owner.getId(), owner.getNickName(), owner.getImageUrl(), newChatRoom.getId())
