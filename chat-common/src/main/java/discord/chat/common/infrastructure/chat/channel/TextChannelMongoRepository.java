@@ -11,6 +11,8 @@ import discord.chat.common.infrastructure.user.User;
 public interface TextChannelMongoRepository extends MongoRepository<TextChannel, String> {
     boolean existsByIdAndChatRoomId(String textChannelId, String chatRoomId);
 
+    long countByChatRoom(ChatRoom chatRoom);
+
     void deleteAllByChatRoom(ChatRoom chatRoom);
 
     void deleteByOwner(User owner);

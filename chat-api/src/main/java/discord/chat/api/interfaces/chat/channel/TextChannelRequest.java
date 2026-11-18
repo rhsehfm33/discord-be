@@ -8,6 +8,5 @@ import lombok.NoArgsConstructor;
 public class TextChannelRequest {
     private String id;
     private String title;
-    private String chatRoomId;
 }
 

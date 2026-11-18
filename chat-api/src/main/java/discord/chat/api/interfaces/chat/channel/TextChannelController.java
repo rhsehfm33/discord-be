@@ -23,11 +23,13 @@ import discord.chat.common.exception.CustomIllegalArgumentException;
 public class TextChannelController {
     private final TextChannelService textChannelService;
 
-    @PostMapping("/text-channels")
+    @PostMapping("/chat-rooms/{chatRoomId}/text-channels")
     public TextChannelResponse create(
-        Authentication authentication, @RequestBody TextChannelRequest textChannelRequest
+        Authentication authentication,
+        @PathVariable String chatRoomId,
+        @RequestBody TextChannelCreationRequest textChannelCreationRequest
     ) throws CustomIllegalArgumentException, CustomEntityNotFoundException {
-        return textChannelService.create(authentication, textChannelRequest);
+        return textChannelService.create(authentication, chatRoomId, textChannelCreationRequest);
     }
 
     @GetMapping("/chat-rooms/{chatRoomId}/text-channels")

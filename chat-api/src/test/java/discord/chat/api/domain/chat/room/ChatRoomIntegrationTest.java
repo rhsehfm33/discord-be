@@ -7,6 +7,7 @@ import discord.chat.api.domain.chat.channel.TextChannelService;
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
 import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
 import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
+import discord.chat.api.interfaces.chat.channel.TextChannelCreationRequest;
 import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
 import discord.chat.api.support.BaseIntegrationTest;
 import discord.chat.common.exception.CustomAuthorizationError;
@@ -130,10 +131,10 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             "{\"title\":\"Room\",\"type\":\"COMMUNITY\",\"image\":\"room.png\"}", ChatRoomRequest.class
         );
         String chatRoomId = chatRoomService.create(owner, roomRequest).getId();
-        TextChannelRequest channelRequest = objectMapper.readValue(
-            "{\"title\":\"Topic\",\"chatRoomId\":\"" + chatRoomId + "\"}", TextChannelRequest.class
+        TextChannelCreationRequest textChannelCreationRequest = objectMapper.readValue(
+            "{\"title\":\"Topic\"}", TextChannelCreationRequest.class
         );
-        String textChannelId = textChannelService.create(owner, channelRequest).getId();
+        String textChannelId = textChannelService.create(owner, chatRoomId, textChannelCreationRequest).getId();
         TextChannelRequest updateRequest = objectMapper.readValue(
             "{\"id\":\"" + textChannelId + "\",\"title\":\"Updated\"}", TextChannelRequest.class
         );
