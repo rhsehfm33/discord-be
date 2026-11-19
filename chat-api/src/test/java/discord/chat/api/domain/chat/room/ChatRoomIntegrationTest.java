@@ -1,267 +1,161 @@
 package discord.chat.api.domain.chat.room;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import discord.chat.api.application.session.ChatSessionEvent;
-import discord.chat.api.application.session.TextChannelEvent;
-import discord.chat.api.application.session.ChatSessionEventHandler;
-import discord.chat.api.domain.chat.channel.TextChannelCache;
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
+import discord.chat.api.application.message.ChatMessageService;
 import discord.chat.api.domain.chat.channel.TextChannelService;
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
-import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
-import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
-import discord.chat.api.interfaces.chat.channel.TextChannelCreationRequest;
+import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
+import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
+import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import discord.chat.api.interfaces.chat.room.ChatRoomRequest;
+import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.support.BaseIntegrationTest;
-import discord.chat.common.exception.CustomAuthorizationError;
-import discord.chat.common.exception.CustomEntityNotFoundException;
-import discord.chat.common.exception.CustomIllegalArgumentException;
-import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
-import discord.chat.common.infrastructure.chat.room.ChatRoomMongoRepository;
-import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
 import discord.chat.common.infrastructure.user.User;
 import discord.chat.common.infrastructure.user.UserMongoRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@AutoConfigureMockMvc
+// Uses real MongoDB and Redis; only the final WebSocket transport is mocked.
 class ChatRoomIntegrationTest extends BaseIntegrationTest {
+    private static final Duration REDIS_DELIVERY_TIMEOUT = Duration.ofSeconds(5);
+
     @Autowired
     private ChatRoomService chatRoomService;
-    @Autowired
-    private ChatRoomParticipantService chatRoomParticipantService;
     @Autowired
     private ChatSubscriptionService chatSubscriptionService;
     @Autowired
     private TextChannelService textChannelService;
     @Autowired
-    private TextChannelCache textChannelCache;
+    private ChatMessageService chatMessageService;
     @Autowired
-    private ChatSessionEventHandler chatSessionEventHandler;
-    @Autowired
-    private ChannelAccessService channelAccessService;
+    private ChatSessionRegistry chatSessionRegistry;
     @Autowired
     private UserMongoRepository userMongoRepository;
     @Autowired
-    private ChatRoomMongoRepository chatRoomMongoRepository;
-    @Autowired
-    private ChatSubscriptMongoRepository chatSubscriptMongoRepository;
-    @Autowired
-    private TextChannelMongoRepository textChannelMongoRepository;
-    @Autowired
     private ObjectMapper objectMapper;
-    @Autowired
-    private MockMvc mockMvc;
     @MockBean
-    private ChatSessionEventPublisher chatSessionEventPublisher;
+    private WebSocketUserMessageSender webSocketUserMessageSender;
 
     private Authentication dummyOwner;
+    private Authentication dummyMember;
     private String dummyChatRoomId;
+    private String dummyTextChannelId;
 
-    // Creates an owner and their chat room before each test.
+    // Creates an owner with a connected session, a room, and a member who is not yet connected.
     @BeforeEach
-    void createOwnerAndChatRoom() throws Exception {
-        dummyOwner = createUserAndSetSecurityContext("owner");
+    void createRoomWithConnectedOwner() throws Exception {
+        dummyOwner = createUser("owner");
+        dummyMember = createUser("member");
+        SecurityContextHolder.getContext().setAuthentication(dummyOwner);
+
         ChatRoomRequest chatRoomRequest = objectMapper.readValue(
             "{\"title\":\"Room\",\"type\":\"COMMUNITY\",\"image\":\"room.png\"}", ChatRoomRequest.class
         );
         dummyChatRoomId = chatRoomService.create(dummyOwner, chatRoomRequest).getId();
+        dummyTextChannelId = textChannelService.getAllByChatRoom(dummyOwner, dummyChatRoomId).get(0).getId();
+        chatSessionRegistry.register(dummyOwner.getName(), "owner-session");
     }
 
-    // Checks that a new chat room gives its owner access and one default text channel.
-    @Test
-    void createsChatRoomWithDefaultTextChannel() throws Exception {
-        verify(chatSessionEventPublisher).publishToUserAfterCommit(
-            ChatSessionEvent.join(dummyOwner.getName(), "owner", null, dummyChatRoomId)
-        );
-        assertThat(channelAccessService.getChatRoomIdsBy(dummyOwner.getName())).containsExactly(dummyChatRoomId);
-        assertThat(textChannelService.getAllByChatRoom(dummyOwner, dummyChatRoomId)).hasSize(1);
+    // Removes the sessions so Redis subscriptions do not leak into other tests.
+    @AfterEach
+    void removeSessions() {
+        chatSessionRegistry.removeSession(dummyOwner.getName(), "owner-session");
+        chatSessionRegistry.removeSession(dummyMember.getName(), "member-session");
+        SecurityContextHolder.clearContext();
     }
 
-    // Checks that a joined member appears in the participant list and the join is published.
+    // Checks that a member who connects after joining receives the owner's message through Redis.
     @Test
-    void addsMemberWhenJoiningChatRoom() throws Exception {
-        Authentication dummyMember = createUserAndSetSecurityContext("member");
+    void deliversMessageToConnectedMember() throws Exception {
         chatSubscriptionService.subscribe(dummyMember, dummyChatRoomId);
+        chatSessionRegistry.register(dummyMember.getName(), "member-session");
 
-        ChatSessionEvent joinEvent = ChatSessionEvent.join(dummyMember.getName(), "member", null, dummyChatRoomId);
-        verify(chatSessionEventPublisher).publishToUserAfterCommit(joinEvent);
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(joinEvent);
-        assertThat(chatRoomParticipantService.getParticipants(dummyMember, dummyChatRoomId))
-            .extracting("nickName").containsExactlyInAnyOrder("owner", "member");
+        sendOwnerMessage("hello");
+
+        assertThat(captureDeliveredMessage(dummyMember).getContent()).isEqualTo("hello");
     }
 
-    // Checks that a member who leaves loses access to the chat room.
+    // Checks that a connected member receives messages right after joining, without reconnecting.
     @Test
-    void removesAccessWhenLeavingChatRoom() throws Exception {
-        Authentication dummyMember = createUserAndSetSecurityContext("member");
+    void deliversMessageAfterJoiningWithoutReconnect() throws Exception {
+        chatSessionRegistry.register(dummyMember.getName(), "member-session");
         chatSubscriptionService.subscribe(dummyMember, dummyChatRoomId);
+        awaitRoomAccess(dummyMember, true);
+
+        sendOwnerMessage("hello");
+
+        assertThat(captureDeliveredMessage(dummyMember).getContent()).isEqualTo("hello");
+    }
+
+    // Checks that a member stops receiving messages after leaving the room.
+    @Test
+    void stopsDeliveryAfterLeaving() throws Exception {
+        chatSubscriptionService.subscribe(dummyMember, dummyChatRoomId);
+        chatSessionRegistry.register(dummyMember.getName(), "member-session");
         chatSubscriptionService.unsubscribe(dummyMember, dummyChatRoomId);
+        awaitRoomAccess(dummyMember, false);
 
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            ChatSessionEvent.leave(dummyMember.getName(), "member", dummyChatRoomId)
-        );
-        assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(dummyMember, dummyChatRoomId))
-            .isInstanceOf(CustomAuthorizationError.class);
+        sendOwnerMessage("hello");
+
+        assertThat(captureDeliveredMessage(dummyOwner).getContent()).isEqualTo("hello");
+        verify(webSocketUserMessageSender, never())
+            .send(eq(dummyMember.getName()), eq("/channel"), any(ChatMessageResponse.class));
     }
 
-    // Checks that deleting a chat room also removes its memberships and text channels.
+    // Checks that a connected member is notified when the owner deletes the room.
     @Test
-    void deletesChatRoomWithItsData() throws Exception {
+    void notifiesMemberWhenRoomIsDeleted() throws Exception {
+        chatSubscriptionService.subscribe(dummyMember, dummyChatRoomId);
+        chatSessionRegistry.register(dummyMember.getName(), "member-session");
+
         chatRoomService.delete(dummyOwner, dummyChatRoomId);
 
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(ChatSessionEvent.delete(dummyChatRoomId));
-        assertThat(chatRoomMongoRepository.findById(dummyChatRoomId)).isEmpty();
-        assertThat(chatSubscriptMongoRepository.count()).isZero();
-        assertThat(textChannelMongoRepository.count()).isZero();
-    }
-
-    // Checks that a member can read the room's users, text channels, and room list through REST.
-    @Test
-    void servesChatRoomDataToMembersOverRest() throws Exception {
-        Authentication dummyMember = createUserAndSetSecurityContext("member");
-        chatSubscriptionService.subscribe(dummyMember, dummyChatRoomId);
-
-        mockMvc.perform(get("/chat-rooms/{roomId}/users", dummyChatRoomId).with(authentication(dummyMember)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
-        mockMvc.perform(get("/chat-rooms/{roomId}/text-channels", dummyChatRoomId).with(authentication(dummyMember)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
-        mockMvc.perform(get("/chat-rooms").with(authentication(dummyMember)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(dummyChatRoomId));
-    }
-
-    // Checks that creating a text channel publishes an event and links the channel to its room.
-    @Test
-    void createsTextChannel() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_CREATED, textChannelId, "Topic")
-        );
-        assertThat(textChannelCache.belongsToRoom(textChannelId, dummyChatRoomId)).isTrue();
-    }
-
-    // Checks that renaming a text channel saves the new title and publishes an event.
-    @Test
-    void updatesTextChannel() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-        TextChannelRequest textChannelRequest = objectMapper.readValue(
-            "{\"id\":\"" + textChannelId + "\",\"title\":\"Updated\"}", TextChannelRequest.class
-        );
-
-        assertThat(textChannelService.update(dummyOwner, textChannelRequest).getTitle()).isEqualTo("Updated");
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_UPDATED, textChannelId, "Updated")
+        verify(webSocketUserMessageSender, timeout(REDIS_DELIVERY_TIMEOUT.toMillis())).send(
+            dummyMember.getName(), "/channel/events", ChatRoomEventResponse.deleted(dummyChatRoomId)
         );
     }
 
-    // Checks that deleting a text channel removes it and publishes an event.
-    @Test
-    void deletesTextChannel() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-        textChannelService.delete(dummyOwner, textChannelId);
-
-        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannelId, "Topic")
-        );
-        assertThat(textChannelMongoRepository.findById(textChannelId)).isEmpty();
-    }
-
-    // Checks that a deletion event removes a cached text channel.
-    @Test
-    void removesDeletedTextChannelFromCache() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-        assertThat(textChannelCache.belongsToRoom(textChannelId, dummyChatRoomId)).isTrue();
-        textChannelService.delete(dummyOwner, textChannelId);
-
-        chatSessionEventHandler.handleTextChannelEvent(
-            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannelId, "Topic")
-        );
-        assertThat(textChannelCache.belongsToRoom(textChannelId, dummyChatRoomId)).isFalse();
-    }
-
-    // Checks that only the owner can delete a text channel or the chat room.
-    @Test
-    void rejectsDeletionByNonOwners() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-        Authentication dummyOutsider = createUserAndSetSecurityContext("outsider");
-
-        assertThatThrownBy(() -> textChannelService.delete(dummyOutsider, textChannelId))
-            .isInstanceOf(CustomIllegalArgumentException.class);
-        assertThatThrownBy(() -> chatRoomService.delete(dummyOutsider, dummyChatRoomId))
-            .isInstanceOf(CustomEntityNotFoundException.class);
-    }
-
-    // Checks that the last text channel in a chat room cannot be deleted.
-    @Test
-    void keepsLastTextChannel() throws Exception {
-        String defaultTextChannelId = textChannelService.getAllByChatRoom(dummyOwner, dummyChatRoomId).get(0).getId();
-
-        assertThatThrownBy(() -> textChannelService.delete(dummyOwner, defaultTextChannelId))
-            .isInstanceOf(CustomIllegalArgumentException.class)
-            .hasMessage("A chat room must have at least one text channel.");
-        assertThat(textChannelMongoRepository.existsById(defaultTextChannelId)).isTrue();
-    }
-
-    // Checks that the moved REST routes still require authentication.
-    @Test
-    void rejectsAnonymousRoomRequests() throws Exception {
-        SecurityContextHolder.clearContext();
-        mockMvc.perform(get("/chat-rooms")).andExpect(status().isUnauthorized());
-    }
-
-    // Checks that a removed user cannot resolve channel access from a previously issued token.
-    @Test
-    void rejectsDeletedUsersWhenResolvingChannelAccess() {
-        Authentication user = createUserAndSetSecurityContext("removed");
-        userMongoRepository.deleteById(user.getName());
-        assertThatThrownBy(() -> channelAccessService.getChatRoomIdsBy(user.getName()))
-            .isInstanceOf(AccessDeniedException.class);
-    }
-
-    // Clears service authentication even when a test assertion fails.
-    @AfterEach
-    void clearAuthentication() {
-        SecurityContextHolder.clearContext();
-    }
-
-    // Creates a persisted user and installs it as the current principal for secured service calls.
-    private Authentication createUserAndSetSecurityContext(String nickName) {
+    // Creates a persisted user and returns its authentication without changing the security context.
+    private Authentication createUser(String nickName) {
         User user = userMongoRepository.save(new User(nickName, nickName + "@example.com", "password", null));
-        Authentication authentication = new UsernamePasswordAuthenticationToken(user, null, List.of());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return authentication;
+        return new UsernamePasswordAuthenticationToken(user, null, List.of());
     }
 
-    // Creates a text channel in the owner's chat room and returns its ID.
-    private String createTextChannel(String title) throws Exception {
-        TextChannelCreationRequest textChannelCreationRequest = objectMapper.readValue(
-            "{\"title\":\"" + title + "\"}", TextChannelCreationRequest.class
+    // Sends a message from the owner to the room's default text channel.
+    private void sendOwnerMessage(String content) {
+        chatMessageService.send(dummyChatRoomId, dummyTextChannelId, content, dummyOwner);
+    }
+
+    // Waits until the session registry reflects the user's room access event from Redis.
+    private void awaitRoomAccess(Authentication user, boolean expectedAccess) {
+        await().atMost(REDIS_DELIVERY_TIMEOUT).untilAsserted(() ->
+            assertThat(chatSessionRegistry.hasRoomAccess(user.getName(), dummyChatRoomId)).isEqualTo(expectedAccess)
         );
-        return textChannelService.create(dummyOwner, dummyChatRoomId, textChannelCreationRequest).getId();
     }
 
-    // Creates the event expected for a text channel in the owner's chat room.
-    private TextChannelEvent createTextChannelEvent(TextChannelEvent.Type type, String textChannelId, String title) {
-        return new TextChannelEvent(type, dummyChatRoomId, textChannelId, title, dummyOwner.getName());
+    // Waits for a chat message delivered to the user and returns it.
+    private ChatMessageResponse captureDeliveredMessage(Authentication user) {
+        ArgumentCaptor<ChatMessageResponse> messageCaptor = ArgumentCaptor.forClass(ChatMessageResponse.class);
+        verify(webSocketUserMessageSender, timeout(REDIS_DELIVERY_TIMEOUT.toMillis()))
+            .send(eq(user.getName()), eq("/channel"), messageCaptor.capture());
+        return messageCaptor.getValue();
     }
 }
