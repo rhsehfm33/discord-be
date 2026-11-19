@@ -1,5 +1,6 @@
 package discord.chat.api.infrastructure.websocket;
 
+import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
@@ -16,42 +17,51 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatSessionRegistry {
     private final ChatMessageRedisBroker chatMessageRedisBroker;
     private final DirectMessageRedisBroker directMessageRedisBroker;
+    private final ChannelAccessService channelAccessService;
     private final Map<String, Set<String>> chatRoomIdToUserIds = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> userIdToChatRoomIds = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> userIdToSessionIds = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> chatRoomIdToTextChannelIds = new ConcurrentHashMap<>();
 
-    public synchronized void register(String userId, String sessionId, List<TextChannel> accessibleChannels) {
-        Set<String> sessionIds = userIdToSessionIds.computeIfAbsent(
-            userId, key -> ConcurrentHashMap.newKeySet()
-        );
-        boolean firstSession = sessionIds.isEmpty();
-        if (!sessionIds.add(sessionId)) {
-            return;
-        }
-        if (!firstSession) {
-            return;
-        }
-        userIdToChatRoomIds.computeIfAbsent(userId, key -> ConcurrentHashMap.newKeySet());
+    public void register(String userId, String sessionId) {
+        List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId);
 
-        for (TextChannel textChannel : accessibleChannels) {
+        synchronized (this) {
+            Set<String> sessionIds = userIdToSessionIds.computeIfAbsent(
+                userId, key -> ConcurrentHashMap.newKeySet()
+            );
+
+            boolean firstSession = sessionIds.isEmpty();
+            if (!sessionIds.add(sessionId) || !firstSession) {
+                return;
+            }
+
+            userIdToChatRoomIds.computeIfAbsent(userId, key -> ConcurrentHashMap.newKeySet());
             try {
-                addAccess(userId, textChannel);
+                for (TextChannel textChannel : textChannels) {
+                    addAccess(userId, textChannel.getChatRoom().getId(), textChannel.getId());
+                }
             } catch (RuntimeException exception) {
                 removeSession(userId, sessionId);
                 throw exception;
             }
+            directMessageRedisBroker.subscribe(userId);
         }
-        directMessageRedisBroker.subscribe(userId);
     }
 
-    public synchronized void join(String userId, List<TextChannel> accessibleChannels) {
+    public void join(String userId, String chatRoomId) {
         if (!hasUserSessions(userId)) {
             return;
         }
 
-        for (TextChannel textChannel : accessibleChannels) {
-            addAccess(userId, textChannel);
+        List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
+        synchronized (this) {
+            if (!hasUserSessions(userId)) {
+                return;
+            }
+            for (TextChannel textChannel : textChannels) {
+                addAccess(userId, chatRoomId, textChannel.getId());
+            }
         }
     }
 
@@ -77,7 +87,7 @@ public class ChatSessionRegistry {
         chatMessageRedisBroker.unsubscribe(chatRoomId);
     }
 
-    public synchronized boolean hasUserSessions(String userId) {
+    private synchronized boolean hasUserSessions(String userId) {
         Set<String> sessionIds = userIdToSessionIds.get(userId);
         return sessionIds != null && !sessionIds.isEmpty();
     }
@@ -118,10 +128,7 @@ public class ChatSessionRegistry {
         return Set.copyOf(userIds);
     }
 
-    private void addAccess(String userId, TextChannel textChannel) {
-        String textChannelId = textChannel.getId();
-        String chatRoomId = textChannel.getChatRoom().getId();
-
+    private void addAccess(String userId, String chatRoomId, String textChannelId) {
         if (!chatRoomIdToUserIds.containsKey(chatRoomId)) {
             chatMessageRedisBroker.subscribe(chatRoomId);
             chatRoomIdToUserIds.put(chatRoomId, ConcurrentHashMap.newKeySet());

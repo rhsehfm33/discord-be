@@ -1,8 +1,5 @@
 package discord.chat.api.infrastructure.websocket;
 
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
-import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -20,19 +17,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class WebSocketAuthorizationInterceptorTest {
-    // Checks that a socket connection resolves channel access locally and registers authorized channels.
+    // Checks that a socket connection registers the authenticated user and session.
     @Test
-    void registersChannelsFromLocalAccessService() {
-        ChannelAccessService channelAccessService = mock(ChannelAccessService.class);
+    void registersAuthenticatedSession() {
         ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
-        var interceptor = new WebSocketAuthorizationInterceptor(channelAccessService, chatSessionRegistry);
-        TextChannel accessibleChannel = mock(TextChannel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        when(accessibleChannel.getId()).thenReturn("channel");
-        when(accessibleChannel.getChatRoom()).thenReturn(chatRoom);
-        when(chatRoom.getId()).thenReturn("room");
-        List<TextChannel> accessibleChannels = List.of(accessibleChannel);
-        when(channelAccessService.getTextChannelsBy("user")).thenReturn(accessibleChannels);
+        var interceptor = new WebSocketAuthorizationInterceptor(chatSessionRegistry);
         User user = new User("user", "User", "user@example.com", null, null);
         var stompHeaders = StompHeaderAccessor.create(StompCommand.CONNECT);
         stompHeaders.setSessionId("session");
@@ -42,19 +31,15 @@ class WebSocketAuthorizationInterceptorTest {
 
         interceptor.preSend(message, new ExecutorSubscribableChannel());
 
-        verify(channelAccessService).getTextChannelsBy("user");
-        verify(chatSessionRegistry).register("user", "session", accessibleChannels);
+        verify(chatSessionRegistry).register("user", "session");
         assertThat(stompHeaders.getSessionAttributes()).containsEntry("userId", "user");
     }
 
     // Checks that disconnect cleanup resolves the user from WebSocket session attributes.
     @Test
     void removeDisconnectedSessionForStoredUser() {
-        ChannelAccessService channelAccessService = mock(ChannelAccessService.class);
         ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
-        var webSocketAuthorizationInterceptor = new WebSocketAuthorizationInterceptor(
-            channelAccessService, chatSessionRegistry
-        );
+        var webSocketAuthorizationInterceptor = new WebSocketAuthorizationInterceptor(chatSessionRegistry);
         var stompHeaders = StompHeaderAccessor.create(StompCommand.DISCONNECT);
         stompHeaders.setSessionId("session");
         stompHeaders.setSessionAttributes(new HashMap<>(Map.of("userId", "user")));
@@ -63,17 +48,13 @@ class WebSocketAuthorizationInterceptorTest {
         webSocketAuthorizationInterceptor.preSend(message, new ExecutorSubscribableChannel());
 
         verify(chatSessionRegistry).removeSession("user", "session");
-        verifyNoInteractions(channelAccessService);
     }
 
     // Checks that clients cannot send to non-existing destinations.
     @Test
     void rejectInvalidSendDestination() {
-        ChannelAccessService channelAccessService = mock(ChannelAccessService.class);
         ChatSessionRegistry chatSessionRegistry = mock(ChatSessionRegistry.class);
-        var webSocketAuthorizationInterceptor = new WebSocketAuthorizationInterceptor(
-            channelAccessService, chatSessionRegistry
-        );
+        var webSocketAuthorizationInterceptor = new WebSocketAuthorizationInterceptor(chatSessionRegistry);
 
         for (String blockedDestination : List.of("/channel", "/user/sender/channel/errors")) {
             var stompHeaders = StompHeaderAccessor.create(StompCommand.SEND);
@@ -84,6 +65,6 @@ class WebSocketAuthorizationInterceptorTest {
             assertThatThrownBy(() -> webSocketAuthorizationInterceptor.preSend(stompMessage, inboundMessageChannel))
                 .isInstanceOf(IllegalArgumentException.class);
         }
-        verifyNoInteractions(channelAccessService, chatSessionRegistry);
+        verifyNoInteractions(chatSessionRegistry);
     }
 }

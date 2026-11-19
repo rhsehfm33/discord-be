@@ -140,9 +140,9 @@ class RedisFanOutIntegrationTest {
         when(textChannel.getId()).thenReturn(textChannelId);
         when(textChannel.getChatRoom()).thenReturn(chatRoom);
         when(chatRoom.getId()).thenReturn(chatRoomId);
-        serverContext.getBean(ChatSessionRegistry.class).register(
-            userId, sessionId, List.of(textChannel)
-        );
+        ChannelAccessService channelAccessService = serverContext.getBean(ChannelAccessService.class);
+        when(channelAccessService.getTextChannelsBy(userId)).thenReturn(List.of(textChannel));
+        serverContext.getBean(ChatSessionRegistry.class).register(userId, sessionId);
     }
 
     // Registers a connected user before the user has access to a room.
@@ -151,10 +151,10 @@ class RedisFanOutIntegrationTest {
         String userId,
         String sessionId
     ) {
-        serverContext.getBean(ChatSessionRegistry.class).register(userId, sessionId, List.of());
+        serverContext.getBean(ChatSessionRegistry.class).register(userId, sessionId);
     }
 
-    // Gives the event handler current database access for one room.
+    // Gives the session registry current database access for one room.
     private void allowRoomAccess(
         AnnotationConfigApplicationContext serverContext,
         String userId,

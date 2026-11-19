@@ -1,5 +1,6 @@
 package discord.chat.api.application.message;
 
+import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
@@ -36,6 +37,9 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
     private ChatMessageRedisBroker chatMessageRedisBroker;
 
     @MockBean
+    private ChannelAccessService channelAccessService;
+
+    @MockBean
     private WebSocketUserMessageSender webSocketUserMessageSender;
 
     // Gives the test session access to the channel.
@@ -46,7 +50,8 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
         when(textChannel.getId()).thenReturn("channel");
         when(textChannel.getChatRoom()).thenReturn(chatRoom);
         when(chatRoom.getId()).thenReturn("room");
-        chatSessionRegistry.register("sender", "session", List.of(textChannel));
+        when(channelAccessService.getTextChannelsBy("sender")).thenReturn(List.of(textChannel));
+        chatSessionRegistry.register("sender", "session");
     }
 
     // Removes the test session after each test.

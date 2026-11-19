@@ -1,17 +1,13 @@
 package discord.chat.api.application.session;
 
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import discord.chat.api.interfaces.chat.room.ChatRoomParticipantResponse;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @Slf4j
@@ -19,7 +15,6 @@ import java.util.List;
 public class ChatSessionEventHandler {
     private static final String CHAT_ROOM_EVENT_DESTINATION = "/channel/events";
 
-    private final ChannelAccessService channelAccessService;
     private final ChatSessionRegistry chatSessionRegistry;
     private final WebSocketUserMessageSender webSocketUserMessageSender;
 
@@ -36,11 +31,7 @@ public class ChatSessionEventHandler {
 
     @EventListener
     public void join(PersonalJoinReceived event) {
-        String userId = event.userId();
-        if (chatSessionRegistry.hasUserSessions(userId)) {
-            List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, event.chatRoomId());
-            chatSessionRegistry.join(userId, textChannels);
-        }
+        chatSessionRegistry.join(event.userId(), event.chatRoomId());
     }
 
     private void join(ChatSessionEvent event) {

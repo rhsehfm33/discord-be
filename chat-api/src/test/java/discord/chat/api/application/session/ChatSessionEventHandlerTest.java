@@ -1,11 +1,9 @@
 package discord.chat.api.application.session;
 
 import discord.chat.api.application.session.ChatSessionEventHandler.PersonalJoinReceived;
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,19 +14,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ChatSessionEventHandlerTest {
-    @Mock
-    private ChannelAccessService channelAccessService;
     @Mock
     private ChatSessionRegistry chatSessionRegistry;
     @Mock
@@ -40,34 +32,17 @@ class ChatSessionEventHandlerTest {
     @BeforeEach
     void setUp() {
         chatSessionEventHandler = new ChatSessionEventHandler(
-            channelAccessService,
             chatSessionRegistry,
             webSocketUserMessageSender
         );
     }
 
-    // Checks that a join event loads channels belonging to the joined room.
+    // Checks that a personal join identifies the user and room to the registry.
     @Test
     void joinAccessibleRoom() {
-        TextChannel joinedRoomChannel = createTextChannel();
-        when(chatSessionRegistry.hasUserSessions("user")).thenReturn(true);
-        when(channelAccessService.getTextChannelsBy("user", "joined-room"))
-            .thenReturn(List.of(joinedRoomChannel));
-
         chatSessionEventHandler.join(new PersonalJoinReceived("user", "joined-room"));
 
-        verify(chatSessionRegistry).join("user", List.of(joinedRoomChannel));
-    }
-
-    // Checks that a join event avoids a database lookup when the user is not connected locally.
-    @Test
-    void ignoreJoinForDisconnectedUser() {
-        when(chatSessionRegistry.hasUserSessions("user")).thenReturn(false);
-
-        chatSessionEventHandler.join(new PersonalJoinReceived("user", "room"));
-
-        verify(channelAccessService, never()).getTextChannelsBy("user", "room");
-        verify(chatSessionRegistry, never()).join(anyString(), anyList());
+        verify(chatSessionRegistry).join("user", "joined-room");
     }
 
     // Checks that a leave event removes the user's cached room access.
@@ -107,10 +82,5 @@ class ChatSessionEventHandlerTest {
 
         verify(webSocketUserMessageSender).send("second-user", "/channel/events", response);
         verify(chatSessionRegistry).delete("room");
-    }
-
-    // Creates a text channel returned by the access service.
-    private TextChannel createTextChannel() {
-        return mock(TextChannel.class);
     }
 }

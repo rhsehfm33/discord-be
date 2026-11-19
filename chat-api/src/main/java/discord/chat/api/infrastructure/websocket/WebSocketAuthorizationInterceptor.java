@@ -1,7 +1,5 @@
 package discord.chat.api.infrastructure.websocket;
 
-import discord.chat.api.domain.chat.channel.ChannelAccessService;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -16,8 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
@@ -27,7 +23,6 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
     private static final String PUBLISH_ERROR_DESTINATION = "/user/channel/errors";
     private static final String USER_ID_SESSION_ATTRIBUTE = "userId";
 
-    private final ChannelAccessService channelAccessService;
     private final ChatSessionRegistry chatSessionRegistry;
 
     @Override
@@ -85,8 +80,7 @@ public class WebSocketAuthorizationInterceptor implements ChannelInterceptor {
         }
 
         accessor.getSessionAttributes().put(USER_ID_SESSION_ATTRIBUTE, user.getId());
-        List<TextChannel> accessibleChannels = channelAccessService.getTextChannelsBy(user.getId());
-        chatSessionRegistry.register(user.getId(), accessor.getSessionId(), accessibleChannels);
+        chatSessionRegistry.register(user.getId(), accessor.getSessionId());
     }
 
     private void removeSession(StompHeaderAccessor accessor) {
