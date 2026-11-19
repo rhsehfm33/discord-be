@@ -7,6 +7,7 @@ import discord.chat.api.application.session.ChatSessionEventHandler;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
+import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
@@ -38,7 +39,7 @@ import static org.mockito.Mockito.*;
 // Only the final WebSocket transport is mocked; Redis and Spring event delivery are real.
 class RedisFanOutIntegrationTest {
 
-    // Checks that a membership event updates one user's sessions across server instances.
+    // Checks personal-channel cache updates and room-channel notifications on overlapping servers.
     @Test
     void updateUserSessionsAcrossInstances() throws Exception {
         String redisNamespace = "discord:test:redis-fan-out:" + UUID.randomUUID();
@@ -49,11 +50,14 @@ class RedisFanOutIntegrationTest {
         ) {
             registerEmptySession(firstServerContext, "user", "first");
             registerEmptySession(secondServerContext, "user", "second");
+            registerSession(firstServerContext, "member", "member-session", "room", "channel");
             allowRoomAccess(firstServerContext, "user", "room", "channel");
             allowRoomAccess(secondServerContext, "user", "room", "channel");
 
-            firstServerContext.getBean(ChatRoomRedisBroker.class)
-                .publish(ChatSessionEvent.join("user", "nickname", null, "room"));
+            ChatSessionEventPublisher publisher = firstServerContext.getBean(ChatSessionEventPublisher.class);
+            ChatSessionEvent join = ChatSessionEvent.join("user", "nickname", null, "room");
+            publisher.publishToUserAfterCommit(join);
+            publisher.publishToRoomAfterCommit(join);
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 assertThat(firstServerContext.getBean(ChatSessionRegistry.class)
@@ -61,6 +65,12 @@ class RedisFanOutIntegrationTest {
                 assertThat(secondServerContext.getBean(ChatSessionRegistry.class)
                     .hasChannelAccess("user", "room", "channel")).isTrue();
             });
+            ArgumentCaptor<ChatRoomEventResponse> notification = ArgumentCaptor.forClass(ChatRoomEventResponse.class);
+            verify(firstServerContext.getBean(SimpMessagingTemplate.class), timeout(5000)).convertAndSendToUser(
+                eq("member"), eq("/channel/events"), notification.capture()
+            );
+            assertThat(notification.getValue().type()).isEqualTo(ChatRoomEventResponse.Type.SUBSCRIBED);
+            assertThat(notification.getValue().participant().getId()).isEqualTo("user");
         }
     }
 
@@ -105,7 +115,6 @@ class RedisFanOutIntegrationTest {
         TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
             serverContext,
             "messaging.redis.chat-room-message-topic=" + redisNamespace + ":chat-room:message",
-            "messaging.redis.chat-room-session-topic=" + redisNamespace + ":chat-room:session",
             "messaging.redis.direct-message-topic=" + redisNamespace + ":direct-message"
         );
         serverContext.register(RedisTestConfig.class);
@@ -181,8 +190,9 @@ class RedisFanOutIntegrationTest {
     @Import({
         RedisMessagingConfig.class,
         ChatMessageRedisBroker.class,
+        RedisChannels.class,
         DirectMessageRedisBroker.class,
-        ChatRoomRedisBroker.class,
+        ChatSessionEventPublisher.class,
         ChatSessionEventHandler.class,
         ChatSessionRegistry.class,
         ChatRoomMessageDelivery.class,

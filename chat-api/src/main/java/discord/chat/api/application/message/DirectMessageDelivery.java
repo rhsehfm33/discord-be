@@ -11,11 +11,12 @@ import org.springframework.stereotype.Service;
 public class DirectMessageDelivery {
     private final WebSocketUserMessageSender webSocketUserMessageSender;
 
+    public record DirectMessageReceived(String userId, DirectMessageMessageResponse message) {
+    }
+
     @EventListener
     public void deliver(DirectMessageReceived event) {
         webSocketUserMessageSender.send(event.userId(), "/channel/direct-messages", event.message());
     }
 
-    public record DirectMessageReceived(String userId, DirectMessageMessageResponse message) {
-    }
 }

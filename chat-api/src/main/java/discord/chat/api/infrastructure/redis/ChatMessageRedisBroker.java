@@ -2,45 +2,36 @@ package discord.chat.api.infrastructure.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import io.lettuce.core.cluster.pubsub.RedisClusterPubSubAdapter;
 import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ChatMessageRedisBroker {
     private final StatefulRedisClusterConnection<String, String> redisClusterConnection;
     private final StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection;
-    private final ThreadPoolTaskExecutor redisMessageExecutor;
     private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher events;
-    private final String chatRoomMessageTopic;
+    private final RedisChannels redisChannels;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final ThreadPoolTaskExecutor redisMessageExecutor;
 
-    public ChatMessageRedisBroker(
-        StatefulRedisClusterConnection<String, String> redisClusterConnection,
-        StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection,
-        ThreadPoolTaskExecutor redisMessageExecutor,
-        ObjectMapper objectMapper,
-        ApplicationEventPublisher events,
-        @Value("${messaging.redis.chat-room-message-topic}") String chatRoomMessageTopic
-    ) {
-        this.redisClusterConnection = redisClusterConnection;
-        this.redisClusterPubSubConnection = redisClusterPubSubConnection;
-        this.redisMessageExecutor = redisMessageExecutor;
-        this.objectMapper = objectMapper;
-        this.events = events;
-        this.chatRoomMessageTopic = chatRoomMessageTopic;
-        this.redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
+    @PostConstruct
+    void registerListener() {
+        redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
             @Override
-            public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
-                if (channel.startsWith(chatRoomMessageTopic)) {
+            public void smessage(RedisClusterNode node, String channel, String message) {
+                if (redisChannels.isRoom(channel)) {
                     redisMessageExecutor.execute(() -> onMessage(channel, message));
                 }
             }
@@ -49,7 +40,7 @@ public class ChatMessageRedisBroker {
 
     public void subscribe(String chatRoomId) {
         try {
-            redisClusterPubSubConnection.sync().ssubscribe(topic(chatRoomId));
+            redisClusterPubSubConnection.sync().ssubscribe(redisChannels.room(chatRoomId));
             requireConnection();
         } catch (RuntimeException exception) {
             unsubscribe(chatRoomId);
@@ -65,34 +56,47 @@ public class ChatMessageRedisBroker {
 
     public void unsubscribe(String chatRoomId) {
         try {
-            redisClusterPubSubConnection.sync().sunsubscribe(topic(chatRoomId));
+            redisClusterPubSubConnection.sync().sunsubscribe(redisChannels.room(chatRoomId));
         } catch (RuntimeException exception) {
             log.error("Redis shard unsubscribe failed: chatRoomId={}", chatRoomId, exception);
         }
     }
 
     public void publish(ChatMessageResponse message) throws JsonProcessingException {
+        String payload = objectMapper.writeValueAsString(
+            new OutgoingRedisPayload(RedisPayloadType.MESSAGE, message)
+        );
         long subscribers = redisClusterConnection.sync().spublish(
-            topic(message.getChatRoomId()), objectMapper.writeValueAsString(message)
+            redisChannels.room(message.getChatRoomId()), payload
         );
         if (subscribers == 0) {
             throw new IllegalStateException("No Redis subscribers for chat room " + message.getChatRoomId());
         }
     }
 
-    private void onMessage(String receivedTopic, String message) {
+    private void onMessage(String channel, String message) {
         try {
-            ChatMessageResponse response = objectMapper.readValue(message, ChatMessageResponse.class);
-            if (!receivedTopic.equals(topic(response.getChatRoomId()))) {
-                throw new IllegalArgumentException("Redis topic does not match message chat room");
+            var payload = objectMapper.readValue(message, IncomingRedisPayload.class);
+            switch (payload.type()) {
+                case MESSAGE -> {
+                    ChatMessageResponse response = objectMapper.treeToValue(payload.data(), ChatMessageResponse.class);
+                    requireRoomChannel(channel, response.getChatRoomId());
+                    applicationEventPublisher.publishEvent(response);
+                }
+                case SESSION_EVENT -> {
+                    ChatSessionEvent event = objectMapper.treeToValue(payload.data(), ChatSessionEvent.class);
+                    requireRoomChannel(channel, event.chatRoomId());
+                    applicationEventPublisher.publishEvent(event);
+                }
             }
-            events.publishEvent(response);
         } catch (Exception exception) {
-            log.error("Redis chat message delivery failed", exception);
+            log.error("Redis room delivery failed: channel={}", channel, exception);
         }
     }
 
-    private String topic(String chatRoomId) {
-        return chatRoomMessageTopic + ":" + chatRoomId;
+    private void requireRoomChannel(String channel, String chatRoomId) {
+        if (!channel.equals(redisChannels.room(chatRoomId))) {
+            throw new IllegalArgumentException("Redis channel does not match chat room " + chatRoomId);
+        }
     }
 }

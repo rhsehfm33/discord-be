@@ -74,7 +74,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             "{\"title\":\"Room\",\"type\":\"COMMUNITY\",\"image\":\"room.png\"}", ChatRoomRequest.class
         );
         String chatRoomId = chatRoomService.create(owner, request).getId();
-        verify(chatSessionEventPublisher).publishAfterCommit(
+        verify(chatSessionEventPublisher).publishToUserAfterCommit(
             ChatSessionEvent.join(owner.getName(), "owner", null, chatRoomId)
         );
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
@@ -87,9 +87,9 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
-        verify(chatSessionEventPublisher).publishAfterCommit(
-            ChatSessionEvent.join(member.getName(), "member", null, chatRoomId)
-        );
+        ChatSessionEvent join = ChatSessionEvent.join(member.getName(), "member", null, chatRoomId);
+        verify(chatSessionEventPublisher).publishToUserAfterCommit(join);
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(join);
         assertThat(channelAccessService.getTextChannelsBy(member.getName()))
             .extracting(channel -> channel.getChatRoom().getId())
             .containsExactly(chatRoomId);
@@ -106,7 +106,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         SecurityContextHolder.getContext().setAuthentication(member);
         chatSubscriptionService.unsubscribe(member, chatRoomId);
-        verify(chatSessionEventPublisher).publishAfterCommit(
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
             ChatSessionEvent.leave(member.getName(), "member", chatRoomId)
         );
         assertThat(channelAccessService.getTextChannelsBy(member.getName())).isEmpty();
@@ -116,7 +116,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         SecurityContextHolder.getContext().setAuthentication(owner);
         chatRoomService.delete(owner, chatRoomId);
-        verify(chatSessionEventPublisher).publishAfterCommit(ChatSessionEvent.delete(chatRoomId));
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(ChatSessionEvent.delete(chatRoomId));
         assertThat(chatRoomMongoRepository.findById(chatRoomId)).isEmpty();
         assertThat(chatSubscriptMongoRepository.count()).isZero();
         assertThat(textChannelMongoRepository.count()).isZero();

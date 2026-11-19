@@ -3,13 +3,16 @@ package discord.chat.api.infrastructure.redis;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.message.DirectMessageDelivery.DirectMessageReceived;
+import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.application.session.ChatSessionEventHandler.PersonalJoinReceived;
 import discord.chat.api.interfaces.directmessage.DirectMessageMessageResponse;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import io.lettuce.core.cluster.pubsub.RedisClusterPubSubAdapter;
 import io.lettuce.core.cluster.pubsub.StatefulRedisClusterPubSubConnection;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -19,32 +22,22 @@ import java.util.LinkedHashSet;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DirectMessageRedisBroker {
     private final StatefulRedisClusterConnection<String, String> redisClusterConnection;
     private final StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection;
     private final ObjectMapper objectMapper;
+    private final RedisChannels redisChannels;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final String directMessageTopic;
+    private final ThreadPoolTaskExecutor redisMessageExecutor;
 
-    public DirectMessageRedisBroker(
-        StatefulRedisClusterConnection<String, String> redisClusterConnection,
-        StatefulRedisClusterPubSubConnection<String, String> redisClusterPubSubConnection,
-        ThreadPoolTaskExecutor redisMessageExecutor,
-        ObjectMapper objectMapper,
-        ApplicationEventPublisher applicationEventPublisher,
-        @Value("${messaging.redis.direct-message-topic}") String directMessageTopic
-    ) {
-        this.redisClusterConnection = redisClusterConnection;
-        this.redisClusterPubSubConnection = redisClusterPubSubConnection;
-        this.objectMapper = objectMapper;
-        this.applicationEventPublisher = applicationEventPublisher;
-        this.directMessageTopic = directMessageTopic;
-        String directMessageChannelPrefix = directMessageTopic + ":";
+    @PostConstruct
+    void registerListener() {
         redisClusterPubSubConnection.addListener(new RedisClusterPubSubAdapter<>() {
             @Override
-            public void smessage(RedisClusterNode redisClusterNode, String channel, String message) {
-                if (channel.startsWith(directMessageChannelPrefix)) {
-                    String userId = channel.substring(directMessageChannelPrefix.length());
+            public void smessage(RedisClusterNode node, String channel, String message) {
+                if (redisChannels.isPersonal(channel)) {
+                    String userId = redisChannels.personalUserId(channel);
                     redisMessageExecutor.execute(() -> onMessage(userId, message));
                 }
             }
@@ -53,7 +46,7 @@ public class DirectMessageRedisBroker {
 
     public void subscribe(String userId) {
         try {
-            redisClusterPubSubConnection.sync().ssubscribe(directMessageChannel(userId));
+            redisClusterPubSubConnection.sync().ssubscribe(redisChannels.personal(userId));
         } catch (RuntimeException exception) {
             log.error("Redis direct message subscription failed: userId={}", userId, exception);
         }
@@ -61,7 +54,7 @@ public class DirectMessageRedisBroker {
 
     public void unsubscribe(String userId) {
         try {
-            redisClusterPubSubConnection.sync().sunsubscribe(directMessageChannel(userId));
+            redisClusterPubSubConnection.sync().sunsubscribe(redisChannels.personal(userId));
         } catch (RuntimeException exception) {
             log.error("Redis direct message unsubscribe failed: userId={}", userId, exception);
         }
@@ -70,7 +63,9 @@ public class DirectMessageRedisBroker {
     public void publish(DirectMessageMessageResponse message, Collection<String> participantIds) {
         String payload;
         try {
-            payload = objectMapper.writeValueAsString(message);
+            payload = objectMapper.writeValueAsString(
+                new OutgoingRedisPayload(RedisPayloadType.MESSAGE, message)
+            );
         } catch (JsonProcessingException exception) {
             log.error("Could not encode direct message: messageId={}", message.messageId(), exception);
             return;
@@ -78,7 +73,7 @@ public class DirectMessageRedisBroker {
 
         for (String userId : new LinkedHashSet<>(participantIds)) {
             try {
-                redisClusterConnection.sync().spublish(directMessageChannel(userId), payload);
+                redisClusterConnection.sync().spublish(redisChannels.personal(userId), payload);
             } catch (RuntimeException exception) {
                 log.error(
                     "Redis direct message publication failed: messageId={}, userId={}",
@@ -90,14 +85,24 @@ public class DirectMessageRedisBroker {
 
     private void onMessage(String userId, String message) {
         try {
-            DirectMessageMessageResponse response = objectMapper.readValue(message, DirectMessageMessageResponse.class);
-            applicationEventPublisher.publishEvent(new DirectMessageReceived(userId, response));
+            var payload = objectMapper.readValue(message, IncomingRedisPayload.class);
+            switch (payload.type()) {
+                case MESSAGE -> {
+                    DirectMessageMessageResponse response = objectMapper.treeToValue(
+                        payload.data(), DirectMessageMessageResponse.class
+                    );
+                    applicationEventPublisher.publishEvent(new DirectMessageReceived(userId, response));
+                }
+                case SESSION_EVENT -> {
+                    ChatSessionEvent event = objectMapper.treeToValue(payload.data(), ChatSessionEvent.class);
+                    if (event.type() != ChatSessionEvent.Type.JOIN || !userId.equals(event.userId())) {
+                        throw new IllegalArgumentException("Expected JOIN for the subscribed user");
+                    }
+                    applicationEventPublisher.publishEvent(new PersonalJoinReceived(userId, event.chatRoomId()));
+                }
+            }
         } catch (Exception exception) {
-            log.error("Redis direct message delivery failed: userId={}", userId, exception);
+            log.error("Redis personal channel delivery failed: userId={}", userId, exception);
         }
-    }
-
-    private String directMessageChannel(String userId) {
-        return directMessageTopic + ":" + userId;
     }
 }

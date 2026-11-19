@@ -1,5 +1,6 @@
 package discord.chat.api.application.session;
 
+import discord.chat.api.application.session.ChatSessionEventHandler.PersonalJoinReceived;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
@@ -53,7 +54,7 @@ class ChatSessionEventHandlerTest {
         when(channelAccessService.getTextChannelsBy("user", "joined-room"))
             .thenReturn(List.of(joinedRoomChannel));
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", null, "joined-room"));
+        chatSessionEventHandler.join(new PersonalJoinReceived("user", "joined-room"));
 
         verify(chatSessionRegistry).join("user", List.of(joinedRoomChannel));
     }
@@ -63,7 +64,7 @@ class ChatSessionEventHandlerTest {
     void ignoreJoinForDisconnectedUser() {
         when(chatSessionRegistry.hasUserSessions("user")).thenReturn(false);
 
-        chatSessionEventHandler.handle(ChatSessionEvent.join("user", "nickname", null, "room"));
+        chatSessionEventHandler.join(new PersonalJoinReceived("user", "room"));
 
         verify(channelAccessService, never()).getTextChannelsBy("user", "room");
         verify(chatSessionRegistry, never()).join(anyString(), anyList());
@@ -72,7 +73,7 @@ class ChatSessionEventHandlerTest {
     // Checks that a leave event removes the user's cached room access.
     @Test
     void leaveRoom() {
-        chatSessionEventHandler.handle(ChatSessionEvent.leave("user", "nickname", "room"));
+        chatSessionEventHandler.handleRoomEvent(ChatSessionEvent.leave("user", "nickname", "room"));
 
         verify(chatSessionRegistry).leave("user", "room");
     }
@@ -83,7 +84,7 @@ class ChatSessionEventHandlerTest {
         LinkedHashSet<String> userIds = new LinkedHashSet<>(List.of("first-user", "second-user"));
         when(chatSessionRegistry.getUserIds("room")).thenReturn(userIds);
 
-        chatSessionEventHandler.handle(ChatSessionEvent.delete("room"));
+        chatSessionEventHandler.handleRoomEvent(ChatSessionEvent.delete("room"));
 
         ChatRoomEventResponse response = ChatRoomEventResponse.deleted("room");
         InOrder inOrder = inOrder(webSocketUserMessageSender, chatSessionRegistry);
@@ -102,7 +103,7 @@ class ChatSessionEventHandlerTest {
             .when(webSocketUserMessageSender)
             .send("first-user", "/channel/events", response);
 
-        chatSessionEventHandler.handle(ChatSessionEvent.delete("room"));
+        chatSessionEventHandler.handleRoomEvent(ChatSessionEvent.delete("room"));
 
         verify(webSocketUserMessageSender).send("second-user", "/channel/events", response);
         verify(chatSessionRegistry).delete("room");

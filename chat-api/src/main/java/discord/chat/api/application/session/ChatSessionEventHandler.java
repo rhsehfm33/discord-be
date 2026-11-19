@@ -23,27 +23,34 @@ public class ChatSessionEventHandler {
     private final ChatSessionRegistry chatSessionRegistry;
     private final WebSocketUserMessageSender webSocketUserMessageSender;
 
+    public record PersonalJoinReceived(String userId, String chatRoomId) {}
+
     @EventListener
-    public void handle(ChatSessionEvent event) {
+    public void handleRoomEvent(ChatSessionEvent event) {
         switch (event.type()) {
-            case JOIN -> join(event.userId(), event.nickName(), event.imageUrl(), event.chatRoomId());
+            case JOIN -> join(event);
             case LEAVE -> leave(event.userId(), event.nickName(), event.chatRoomId());
             case DELETE -> delete(event.chatRoomId());
         }
     }
 
-    private void join(String userId, String nickName, String imageUrl, String chatRoomId) {
+    @EventListener
+    public void join(PersonalJoinReceived event) {
+        String userId = event.userId();
         if (chatSessionRegistry.hasUserSessions(userId)) {
-            List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
+            List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, event.chatRoomId());
             chatSessionRegistry.join(userId, textChannels);
         }
+    }
 
+    private void join(ChatSessionEvent event) {
         ChatRoomParticipantResponse participant = ChatRoomParticipantResponse.builder()
-            .id(userId)
-            .nickName(nickName)
-            .imageUrl(imageUrl)
+            .id(event.userId())
+            .nickName(event.nickName())
+            .imageUrl(event.imageUrl())
             .build();
-        spreadChatRoomEvent(chatRoomId, ChatRoomEventResponse.subscribed(chatRoomId, participant));
+        ChatRoomEventResponse response = ChatRoomEventResponse.subscribed(event.chatRoomId(), participant);
+        spreadChatRoomEvent(event.chatRoomId(), response);
     }
 
     private void leave(String userId, String nickName, String chatRoomId) {

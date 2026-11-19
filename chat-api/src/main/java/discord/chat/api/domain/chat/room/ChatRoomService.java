@@ -52,7 +52,7 @@ public class ChatRoomService {
         chatSubscriptMongoRepository.save(new ChatSubscription(owner, newChatRoom));
         TextChannel textChannel = new TextChannel("general", owner, newChatRoom);
         textChannelMongoRepository.save(textChannel);
-        chatSessionEventPublisher.publishAfterCommit(
+        chatSessionEventPublisher.publishToUserAfterCommit(
             ChatSessionEvent.join(owner.getId(), owner.getNickName(), owner.getImageUrl(), newChatRoom.getId())
         );
         return new ChatRoomResponse(newChatRoom, true);
@@ -109,7 +109,7 @@ public class ChatRoomService {
             chatSubscriptMongoRepository.deleteAllByChatRoom(chatRoomOptional.get());
             textChannelMongoRepository.deleteAllByChatRoom(chatRoomOptional.get());
             chatRoomMongoRepository.deleteById(chatRoomId);
-            chatSessionEventPublisher.publishAfterCommit(ChatSessionEvent.delete(chatRoomId));
+            chatSessionEventPublisher.publishToRoomAfterCommit(ChatSessionEvent.delete(chatRoomId));
         } else {
             throw new CustomEntityNotFoundException("NOT_FOUND", "Chat room is not found under given conditions");
         }
