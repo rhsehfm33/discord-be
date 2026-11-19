@@ -96,6 +96,7 @@ public class TextChannelService {
     public TextChannelResponse update(
         Authentication authentication, TextChannelRequest textChannelRequest
     ) throws CustomEntityNotFoundException, CustomIllegalArgumentException {
+        validateTitle(textChannelRequest.getTitle());
         User owner = (User) authentication.getPrincipal();
         TextChannel textChannel = textChannelMongoRepository.findById(textChannelRequest.getId()).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found")
