@@ -11,10 +11,19 @@ public class TextChannelResponse {
     private final String chatRoomId;
 
     public TextChannelResponse(TextChannel textChannel) {
-        this.id = textChannel.getId();
-        this.title = textChannel.getTitle();
-        this.ownerId = textChannel.getOwner().getId();
-        this.chatRoomId = textChannel.getChatRoom().getId();
+        this(
+            textChannel.getId(),
+            textChannel.getTitle(),
+            textChannel.getOwner().getId(),
+            textChannel.getChatRoom().getId()
+        );
+    }
+
+    public TextChannelResponse(String id, String title, String ownerId, String chatRoomId) {
+        this.id = id;
+        this.title = title;
+        this.ownerId = ownerId;
+        this.chatRoomId = chatRoomId;
     }
 }
 

@@ -40,12 +40,6 @@ public class TextChannelController {
         return textChannelService.getAllByChatRoom(authentication, chatRoomId);
     }
 
-    @GetMapping("/text-channels/{textChannelId}")
-    public TextChannelResponse get(Authentication authentication, @PathVariable String textChannelId)
-        throws CustomEntityNotFoundException {
-        return textChannelService.get(authentication, textChannelId);
-    }
-
     @PutMapping("/text-channels")
     public TextChannelResponse update(
         Authentication authentication, @RequestBody TextChannelRequest textChannelRequest

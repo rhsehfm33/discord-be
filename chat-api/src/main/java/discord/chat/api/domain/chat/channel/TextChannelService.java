@@ -140,23 +140,15 @@ public class TextChannelService {
         publishChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannel);
     }
 
-    @Transactional(readOnly = true)
-    public TextChannelResponse get(Authentication authentication, String textChannelId)
-        throws CustomEntityNotFoundException {
-        TextChannel channel = textChannelMongoRepository.findById(textChannelId).orElseThrow(
-            () -> new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found")
-        );
-        User user = (User) authentication.getPrincipal();
-        if (!chatSubscriptMongoRepository.existsByUserIdAndChatRoomId(user.getId(), channel.getChatRoom().getId())) {
-            throw new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found");
-        }
-        return new TextChannelResponse(channel);
-    }
-
     private void publishChannelEvent(TextChannelEvent.Type type, TextChannel channel) {
-        chatSessionEventPublisher.publishToRoomAfterCommit(
-            new TextChannelEvent(type, channel.getChatRoom().getId(), channel.getId())
+        TextChannelEvent textChannelEvent = new TextChannelEvent(
+            type,
+            channel.getChatRoom().getId(),
+            channel.getId(),
+            channel.getTitle(),
+            channel.getOwner().getId()
         );
+        chatSessionEventPublisher.publishToRoomAfterCommit(textChannelEvent);
     }
 }
 

@@ -155,7 +155,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         String textChannelId = createTextChannel("Topic");
 
         verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_CREATED, dummyChatRoomId, textChannelId)
+            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_CREATED, textChannelId, "Topic")
         );
         assertThat(textChannelCache.belongsToRoom(textChannelId, dummyChatRoomId)).isTrue();
     }
@@ -170,7 +170,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         assertThat(textChannelService.update(dummyOwner, textChannelRequest).getTitle()).isEqualTo("Updated");
         verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_UPDATED, dummyChatRoomId, textChannelId)
+            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_UPDATED, textChannelId, "Updated")
         );
     }
 
@@ -181,7 +181,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         textChannelService.delete(dummyOwner, textChannelId);
 
         verify(chatSessionEventPublisher).publishToRoomAfterCommit(
-            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, dummyChatRoomId, textChannelId)
+            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannelId, "Topic")
         );
         assertThat(textChannelMongoRepository.findById(textChannelId)).isEmpty();
     }
@@ -194,28 +194,9 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         textChannelService.delete(dummyOwner, textChannelId);
 
         chatSessionEventHandler.handleTextChannelEvent(
-            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, dummyChatRoomId, textChannelId)
+            createTextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannelId, "Topic")
         );
         assertThat(textChannelCache.belongsToRoom(textChannelId, dummyChatRoomId)).isFalse();
-    }
-
-    // Checks that a member can read one text channel through REST.
-    @Test
-    void servesTextChannelToMembersOverRest() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-
-        mockMvc.perform(get("/text-channels/{id}", textChannelId).with(authentication(dummyOwner)))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Topic"));
-    }
-
-    // Checks that a non-member cannot read a text channel.
-    @Test
-    void hidesTextChannelFromNonMembers() throws Exception {
-        String textChannelId = createTextChannel("Topic");
-        Authentication dummyOutsider = createUserAndSetSecurityContext("outsider");
-
-        assertThatThrownBy(() -> textChannelService.get(dummyOutsider, textChannelId))
-            .isInstanceOf(CustomEntityNotFoundException.class);
     }
 
     // Checks that only the owner can delete a text channel or the chat room.
@@ -277,5 +258,10 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             "{\"title\":\"" + title + "\"}", TextChannelCreationRequest.class
         );
         return textChannelService.create(dummyOwner, dummyChatRoomId, textChannelCreationRequest).getId();
+    }
+
+    // Creates the event expected for a text channel in the owner's chat room.
+    private TextChannelEvent createTextChannelEvent(TextChannelEvent.Type type, String textChannelId, String title) {
+        return new TextChannelEvent(type, dummyChatRoomId, textChannelId, title, dummyOwner.getName());
     }
 }
