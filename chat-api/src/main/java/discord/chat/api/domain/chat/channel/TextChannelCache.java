@@ -8,11 +8,16 @@ import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 @RequiredArgsConstructor
 public class TextChannelCache {
     private final TextChannelMongoRepository textChannelMongoRepository;
-    private final Cache<String, String> chatRoomIds = Caffeine.newBuilder().maximumSize(1000).build();
+    private final Cache<String, String> chatRoomIds = Caffeine.newBuilder()
+        .maximumSize(1000)
+        .expireAfterWrite(Duration.ofMinutes(10))
+        .build();
 
     public boolean belongsToRoom(String textChannelId, String chatRoomId) {
         if (textChannelId == null || chatRoomId == null) {
