@@ -1,6 +1,7 @@
 package discord.chat.api.application.session;
 
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import discord.chat.api.interfaces.chat.room.ChatRoomParticipantResponse;
@@ -16,6 +17,7 @@ public class ChatSessionEventHandler {
     private static final String CHAT_ROOM_EVENT_DESTINATION = "/channel/events";
 
     private final ChatSessionRegistry chatSessionRegistry;
+    private final TextChannelCache textChannelCache;
     private final WebSocketUserMessageSender webSocketUserMessageSender;
 
     public record PersonalJoinReceived(String userId, String chatRoomId) {}
@@ -27,6 +29,14 @@ public class ChatSessionEventHandler {
             case LEAVE -> leave(event.userId(), event.nickName(), event.chatRoomId());
             case DELETE -> delete(event.chatRoomId());
         }
+    }
+
+    @EventListener
+    public void handleTextChannelEvent(TextChannelEvent event) {
+        if (event.type() == TextChannelEvent.Type.TEXT_CHANNEL_DELETED) {
+            textChannelCache.invalidate(event.textChannelId());
+        }
+        spreadChatRoomEvent(event.chatRoomId(), event);
     }
 
     @EventListener
@@ -56,25 +66,25 @@ public class ChatSessionEventHandler {
     private void delete(String chatRoomId) {
         ChatRoomEventResponse response = ChatRoomEventResponse.deleted(chatRoomId);
         for (String userId : chatSessionRegistry.getUserIds(chatRoomId)) {
-            send(userId, response);
+            send(userId, chatRoomId, response);
         }
         chatSessionRegistry.delete(chatRoomId);
     }
 
-    private void spreadChatRoomEvent(String chatRoomId, ChatRoomEventResponse response) {
+    private void spreadChatRoomEvent(String chatRoomId, Object response) {
         for (String userId : chatSessionRegistry.getUserIds(chatRoomId)) {
-            send(userId, response);
+            send(userId, chatRoomId, response);
         }
     }
 
-    private void send(String userId, ChatRoomEventResponse response) {
+    private void send(String userId, String chatRoomId, Object response) {
         try {
             webSocketUserMessageSender.send(userId, CHAT_ROOM_EVENT_DESTINATION, response);
         } catch (RuntimeException exception) {
             log.error(
                 "Chat room event delivery failed: userId={}, chatRoomId={}",
                 userId,
-                response.chatRoomId(),
+                chatRoomId,
                 exception
             );
         }

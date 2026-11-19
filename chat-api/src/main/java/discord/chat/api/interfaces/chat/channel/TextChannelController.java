@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import discord.chat.api.domain.chat.channel.TextChannelService;
 import discord.chat.common.exception.CustomEntityNotFoundException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomResourceConflictException;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,6 +40,12 @@ public class TextChannelController {
         return textChannelService.getAllByChatRoom(authentication, chatRoomId);
     }
 
+    @GetMapping("/text-channels/{textChannelId}")
+    public TextChannelResponse get(Authentication authentication, @PathVariable String textChannelId)
+        throws CustomEntityNotFoundException {
+        return textChannelService.get(authentication, textChannelId);
+    }
+
     @PutMapping("/text-channels")
     public TextChannelResponse update(
         Authentication authentication, @RequestBody TextChannelRequest textChannelRequest
@@ -49,7 +56,7 @@ public class TextChannelController {
     @DeleteMapping("/text-channels/{textChannelId}")
     public void delete(
         Authentication authentication, @PathVariable("textChannelId") String textChannelId
-    ) throws CustomIllegalArgumentException, CustomEntityNotFoundException {
+    ) throws CustomIllegalArgumentException, CustomEntityNotFoundException, CustomResourceConflictException {
         textChannelService.delete(authentication, textChannelId);
     }
 }

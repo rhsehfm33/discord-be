@@ -1,6 +1,7 @@
 package discord.chat.api.application.message;
 
 import discord.chat.api.infrastructure.message.ChatMessage;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
@@ -26,6 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatMessageService {
     private final ChatSessionRegistry chatSessionRegistry;
+    private final TextChannelCache textChannelCache;
     private final ChatMessageRepository chatMessageRepository;
     private final WebSocketUserMessageSender webSocketUserMessageSender;
     private final ChatMessageRedisBroker chatMessageRedisBroker;
@@ -37,11 +39,8 @@ public class ChatMessageService {
         Authentication authentication
     ) {
         User sender = (User) authentication.getPrincipal();
-        boolean hasAccess = chatSessionRegistry.hasChannelAccess(
-            sender.getId(),
-            chatRoomId,
-            textChannelId
-        );
+        boolean hasAccess = chatSessionRegistry.hasRoomAccess(sender.getId(), chatRoomId)
+            && textChannelCache.belongsToRoom(textChannelId, chatRoomId);
         if (!hasAccess) {
             throw new AccessDeniedException("No access to text channel");
         }

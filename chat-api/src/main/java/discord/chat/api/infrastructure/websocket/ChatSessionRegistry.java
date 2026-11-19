@@ -3,14 +3,15 @@ package discord.chat.api.infrastructure.websocket;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.redis.DirectMessageRedisBroker;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 @RequiredArgsConstructor
@@ -18,17 +19,17 @@ public class ChatSessionRegistry {
     private final ChatMessageRedisBroker chatMessageRedisBroker;
     private final DirectMessageRedisBroker directMessageRedisBroker;
     private final ChannelAccessService channelAccessService;
-    private final Map<String, Set<String>> chatRoomIdToUserIds = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> userIdToChatRoomIds = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> userIdToSessionIds = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> chatRoomIdToTextChannelIds = new ConcurrentHashMap<>();
+    private final ReentrantReadWriteLock sessionLock = new ReentrantReadWriteLock();
+    private final Map<String, Set<String>> chatRoomIdToUserIds = new HashMap<>();
+    private final Map<String, Set<String>> userIdToChatRoomIds = new HashMap<>();
+    private final Map<String, Set<String>> userIdToSessionIds = new HashMap<>();
 
     public void register(String userId, String sessionId) {
-        List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId);
-
-        synchronized (this) {
+        sessionLock.writeLock().lock();
+        try {
+            List<String> chatRoomIds = channelAccessService.getChatRoomIdsBy(userId);
             Set<String> sessionIds = userIdToSessionIds.computeIfAbsent(
-                userId, key -> ConcurrentHashMap.newKeySet()
+                userId, key -> new HashSet<>()
             );
 
             boolean firstSession = sessionIds.isEmpty();
@@ -36,108 +37,129 @@ public class ChatSessionRegistry {
                 return;
             }
 
-            userIdToChatRoomIds.computeIfAbsent(userId, key -> ConcurrentHashMap.newKeySet());
+            userIdToChatRoomIds.computeIfAbsent(userId, key -> new HashSet<>());
             try {
-                for (TextChannel textChannel : textChannels) {
-                    addAccess(userId, textChannel.getChatRoom().getId(), textChannel.getId());
+                for (String chatRoomId : chatRoomIds) {
+                    addAccess(userId, chatRoomId);
                 }
+                directMessageRedisBroker.subscribe(userId);
             } catch (RuntimeException exception) {
                 removeSession(userId, sessionId);
                 throw exception;
             }
-            directMessageRedisBroker.subscribe(userId);
+        } finally {
+            sessionLock.writeLock().unlock();
         }
     }
 
     public void join(String userId, String chatRoomId) {
-        if (!hasUserSessions(userId)) {
-            return;
-        }
-
-        List<TextChannel> textChannels = channelAccessService.getTextChannelsBy(userId, chatRoomId);
-        synchronized (this) {
+        sessionLock.writeLock().lock();
+        try {
             if (!hasUserSessions(userId)) {
                 return;
             }
-            for (TextChannel textChannel : textChannels) {
-                addAccess(userId, chatRoomId, textChannel.getId());
+
+            if (channelAccessService.hasChatRoomAccess(userId, chatRoomId)) {
+                addAccess(userId, chatRoomId);
             }
+        } finally {
+            sessionLock.writeLock().unlock();
         }
     }
 
-    public synchronized void leave(String userId, String chatRoomId) {
-        Set<String> chatRoomIds = userIdToChatRoomIds.get(userId);
-        if (chatRoomIds == null || !chatRoomIds.remove(chatRoomId)) {
-            return;
-        }
+    public void leave(String userId, String chatRoomId) {
+        sessionLock.writeLock().lock();
+        try {
+            Set<String> chatRoomIds = userIdToChatRoomIds.get(userId);
+            if (chatRoomIds == null || !chatRoomIds.remove(chatRoomId)) {
+                return;
+            }
 
-        removeUserFromChatRoom(userId, chatRoomId);
+            removeUserFromChatRoom(userId, chatRoomId);
+        } finally {
+            sessionLock.writeLock().unlock();
+        }
     }
 
-    public synchronized void delete(String chatRoomId) {
-        Set<String> userIds = chatRoomIdToUserIds.remove(chatRoomId);
-        if (userIds == null) {
-            return;
-        }
+    public void delete(String chatRoomId) {
+        sessionLock.writeLock().lock();
+        try {
+            Set<String> userIds = chatRoomIdToUserIds.remove(chatRoomId);
+            if (userIds == null) {
+                return;
+            }
 
-        for (String userId : userIds) {
-            userIdToChatRoomIds.get(userId).remove(chatRoomId);
+            for (String userId : userIds) {
+                userIdToChatRoomIds.get(userId).remove(chatRoomId);
+            }
+            chatMessageRedisBroker.unsubscribe(chatRoomId);
+        } finally {
+            sessionLock.writeLock().unlock();
         }
-        chatRoomIdToTextChannelIds.remove(chatRoomId);
-        chatMessageRedisBroker.unsubscribe(chatRoomId);
     }
 
-    private synchronized boolean hasUserSessions(String userId) {
+    private boolean hasUserSessions(String userId) {
         Set<String> sessionIds = userIdToSessionIds.get(userId);
         return sessionIds != null && !sessionIds.isEmpty();
     }
 
-    public synchronized boolean hasChannelAccess(String userId, String chatRoomId, String textChannelId) {
-        return userIdToChatRoomIds.containsKey(userId)
-            && userIdToChatRoomIds.get(userId).contains(chatRoomId)
-            && chatRoomIdToTextChannelIds.containsKey(chatRoomId)
-            && chatRoomIdToTextChannelIds.get(chatRoomId).contains(textChannelId);
+    public boolean hasRoomAccess(String userId, String chatRoomId) {
+        sessionLock.readLock().lock();
+        try {
+            Set<String> chatRoomIds = userIdToChatRoomIds.get(userId);
+            return chatRoomIds != null && chatRoomIds.contains(chatRoomId);
+        } finally {
+            sessionLock.readLock().unlock();
+        }
     }
 
-    public synchronized void removeSession(String userId, String sessionId) {
-        Set<String> sessionIds = userIdToSessionIds.get(userId);
-        if (sessionIds == null || !sessionIds.remove(sessionId)) {
-            return;
-        }
-        if (!sessionIds.isEmpty()) {
-            return;
-        }
-        userIdToSessionIds.remove(userId);
+    public void removeSession(String userId, String sessionId) {
+        sessionLock.writeLock().lock();
+        try {
+            Set<String> sessionIds = userIdToSessionIds.get(userId);
+            if (sessionIds == null || !sessionIds.remove(sessionId)) {
+                return;
+            }
+            if (!sessionIds.isEmpty()) {
+                return;
+            }
+            userIdToSessionIds.remove(userId);
 
-        Set<String> chatRoomIds = userIdToChatRoomIds.remove(userId);
-        if (chatRoomIds == null) {
-            return;
+            Set<String> chatRoomIds = userIdToChatRoomIds.remove(userId);
+            if (chatRoomIds == null) {
+                return;
+            }
+            for (String chatRoomId : chatRoomIds) {
+                removeUserFromChatRoom(userId, chatRoomId);
+            }
+            directMessageRedisBroker.unsubscribe(userId);
+        } finally {
+            sessionLock.writeLock().unlock();
         }
-        for (String chatRoomId : chatRoomIds) {
-            removeUserFromChatRoom(userId, chatRoomId);
-        }
-        directMessageRedisBroker.unsubscribe(userId);
     }
 
-    public synchronized Set<String> getUserIds(String chatRoomId) {
-        Set<String> userIds = chatRoomIdToUserIds.get(chatRoomId);
-        if (userIds == null) {
-            return Set.of();
-        }
+    public Set<String> getUserIds(String chatRoomId) {
+        sessionLock.readLock().lock();
+        try {
+            Set<String> userIds = chatRoomIdToUserIds.get(chatRoomId);
+            if (userIds == null) {
+                return Set.of();
+            }
 
-        return Set.copyOf(userIds);
+            return Set.copyOf(userIds);
+        } finally {
+            sessionLock.readLock().unlock();
+        }
     }
 
-    private void addAccess(String userId, String chatRoomId, String textChannelId) {
+    private void addAccess(String userId, String chatRoomId) {
         if (!chatRoomIdToUserIds.containsKey(chatRoomId)) {
             chatMessageRedisBroker.subscribe(chatRoomId);
-            chatRoomIdToUserIds.put(chatRoomId, ConcurrentHashMap.newKeySet());
-            chatRoomIdToTextChannelIds.put(chatRoomId, ConcurrentHashMap.newKeySet());
+            chatRoomIdToUserIds.put(chatRoomId, new HashSet<>());
         } else {
             chatMessageRedisBroker.requireConnection();
         }
 
-        chatRoomIdToTextChannelIds.get(chatRoomId).add(textChannelId);
         userIdToChatRoomIds.get(userId).add(chatRoomId);
         chatRoomIdToUserIds.get(chatRoomId).add(userId);
     }
@@ -147,7 +169,6 @@ public class ChatSessionRegistry {
         userIds.remove(userId);
         if (userIds.isEmpty()) {
             chatRoomIdToUserIds.remove(chatRoomId);
-            chatRoomIdToTextChannelIds.remove(chatRoomId);
             chatMessageRedisBroker.unsubscribe(chatRoomId);
         }
     }

@@ -1,6 +1,5 @@
 package discord.chat.api.domain.chat.channel;
 
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.chat.subsription.ChatSubscriptMongoRepository;
@@ -34,25 +33,19 @@ public class ChannelAccessService {
         return isTextChannelExist;
     }
 
-    public List<TextChannel> getTextChannelsBy(String userId) {
+    public List<String> getChatRoomIdsBy(String userId) {
         User user = userMongoRepository.findById(userId).orElseThrow(
             () -> new AccessDeniedException("User not found")
         );
 
-        List<ChatRoom> subscribedChatRooms = chatSubscriptRepository.findAllByUser(user)
+        return chatSubscriptRepository.findAllByUser(user)
             .stream()
             .map(ChatSubscription::getChatRoom)
+            .map(ChatRoom::getId)
             .toList();
-
-        return textChannelRepository.findAllByChatRoomIn(subscribedChatRooms);
     }
 
-    public List<TextChannel> getTextChannelsBy(String userId, String chatRoomId) {
-        boolean hasChatRoomAccess = chatSubscriptRepository.existsByUserIdAndChatRoomId(userId, chatRoomId);
-        if (!hasChatRoomAccess) {
-            return List.of();
-        }
-
-        return textChannelRepository.findAllByChatRoomId(chatRoomId);
+    public boolean hasChatRoomAccess(String userId, String chatRoomId) {
+        return chatSubscriptRepository.existsByUserIdAndChatRoomId(userId, chatRoomId);
     }
 }

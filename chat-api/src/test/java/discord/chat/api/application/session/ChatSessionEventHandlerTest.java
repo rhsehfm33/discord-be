@@ -2,6 +2,7 @@ package discord.chat.api.application.session;
 
 import discord.chat.api.application.session.ChatSessionEventHandler.PersonalJoinReceived;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,8 @@ class ChatSessionEventHandlerTest {
     @Mock
     private ChatSessionRegistry chatSessionRegistry;
     @Mock
+    private TextChannelCache textChannelCache;
+    @Mock
     private WebSocketUserMessageSender webSocketUserMessageSender;
 
     private ChatSessionEventHandler chatSessionEventHandler;
@@ -33,6 +36,7 @@ class ChatSessionEventHandlerTest {
     void setUp() {
         chatSessionEventHandler = new ChatSessionEventHandler(
             chatSessionRegistry,
+            textChannelCache,
             webSocketUserMessageSender
         );
     }

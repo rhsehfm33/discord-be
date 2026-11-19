@@ -1,6 +1,7 @@
 package discord.chat.api.application.message;
 
 import discord.chat.common.infrastructure.user.User;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.message.ChatMessage;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
@@ -31,6 +32,8 @@ class ChatMessageServiceTest {
     @Mock
     private ChatSessionRegistry chatSessionRegistry;
     @Mock
+    private TextChannelCache textChannelCache;
+    @Mock
     private ChatMessageRepository chatMessageRepository;
     @Mock
     private WebSocketUserMessageSender webSocketUserMessageSender;
@@ -44,7 +47,7 @@ class ChatMessageServiceTest {
     @BeforeEach
     void setUp() {
         chatMessageService = new ChatMessageService(
-            chatSessionRegistry, chatMessageRepository, webSocketUserMessageSender,
+            chatSessionRegistry, textChannelCache, chatMessageRepository, webSocketUserMessageSender,
             chatMessageRedisBroker
         );
     }
@@ -99,10 +102,14 @@ class ChatMessageServiceTest {
     // Checks that a session without channel access cannot save or send messages.
     @Test
     void rejectSessionWithoutChannelAccess() {
-        when(chatSessionRegistry.hasChannelAccess("sender", "room", "channel")).thenReturn(false);
+        when(chatSessionRegistry.hasRoomAccess("sender", "room")).thenReturn(false);
 
         assertThatThrownBy(this::sendMessage).isInstanceOf(AccessDeniedException.class);
 
+        verifyNoInteractions(textChannelCache);
+        when(chatSessionRegistry.hasRoomAccess("sender", "room")).thenReturn(true);
+        when(textChannelCache.belongsToRoom("channel", "room")).thenReturn(false);
+        assertThatThrownBy(this::sendMessage).isInstanceOf(AccessDeniedException.class);
         verifyNoInteractions(chatMessageRepository, chatMessageRedisBroker, webSocketUserMessageSender);
     }
 
@@ -111,7 +118,8 @@ class ChatMessageServiceTest {
         storedMessage = new ChatMessage("sender", "room", "channel", "hello");
         InstanceSetter.setField(storedMessage, "id", "64b7a1");
 
-        when(chatSessionRegistry.hasChannelAccess("sender", "room", "channel")).thenReturn(true);
+        when(chatSessionRegistry.hasRoomAccess("sender", "room")).thenReturn(true);
+        when(textChannelCache.belongsToRoom("channel", "room")).thenReturn(true);
         when(chatMessageRepository.save(any(ChatMessage.class))).thenReturn(storedMessage);
     }
 

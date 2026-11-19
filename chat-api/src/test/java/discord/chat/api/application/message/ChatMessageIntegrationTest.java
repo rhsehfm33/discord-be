@@ -1,13 +1,12 @@
 package discord.chat.api.application.message;
 
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.message.ChatMessageRepository;
 import discord.chat.api.infrastructure.redis.ChatMessageRedisBroker;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.support.BaseIntegrationTest;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
-import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import discord.chat.common.infrastructure.user.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,17 +39,16 @@ class ChatMessageIntegrationTest extends BaseIntegrationTest {
     private ChannelAccessService channelAccessService;
 
     @MockBean
+    private TextChannelCache textChannelCache;
+
+    @MockBean
     private WebSocketUserMessageSender webSocketUserMessageSender;
 
     // Gives the test session access to the channel.
     @BeforeEach
     void registerSession() {
-        TextChannel textChannel = mock(TextChannel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        when(textChannel.getId()).thenReturn("channel");
-        when(textChannel.getChatRoom()).thenReturn(chatRoom);
-        when(chatRoom.getId()).thenReturn("room");
-        when(channelAccessService.getTextChannelsBy("sender")).thenReturn(List.of(textChannel));
+        when(channelAccessService.getChatRoomIdsBy("sender")).thenReturn(List.of("room"));
+        when(textChannelCache.belongsToRoom("channel", "room")).thenReturn(true);
         chatSessionRegistry.register("sender", "session");
     }
 

@@ -3,12 +3,16 @@ package discord.chat.api.domain.chat.channel;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.mongodb.MongoException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import discord.chat.api.application.session.TextChannelEvent;
+import discord.chat.api.infrastructure.redis.ChatSessionEventPublisher;
 import discord.chat.common.infrastructure.chat.channel.TextChannel;
 import discord.chat.common.infrastructure.chat.channel.TextChannelMongoRepository;
 import discord.chat.common.infrastructure.chat.room.ChatRoom;
@@ -19,7 +23,9 @@ import discord.chat.api.interfaces.chat.channel.TextChannelRequest;
 import discord.chat.api.interfaces.chat.channel.TextChannelCreationRequest;
 import discord.chat.api.interfaces.chat.channel.TextChannelResponse;
 import discord.chat.common.exception.CustomEntityNotFoundException;
+import discord.chat.common.exception.CustomException;
 import discord.chat.common.exception.CustomIllegalArgumentException;
+import discord.chat.common.exception.CustomResourceConflictException;
 
 @Service
 @Transactional
@@ -27,12 +33,14 @@ import discord.chat.common.exception.CustomIllegalArgumentException;
 @RequiredArgsConstructor
 public class TextChannelService {
     private static final int MAX_TEXT_CHANNELS = 30;
+    private static final int MONGO_WRITE_CONFLICT = 112;
     private static final int MAX_TITLE_LENGTH = 100;
     private static final Pattern TITLE_PATTERN = Pattern.compile("[\\p{L}\\p{Nd}_-]+");
 
     private final TextChannelMongoRepository textChannelMongoRepository;
     private final ChatRoomMongoRepository chatRoomMongoRepository;
     private final ChatSubscriptMongoRepository chatSubscriptMongoRepository;
+    private final ChatSessionEventPublisher chatSessionEventPublisher;
 
     public TextChannelResponse create(
         Authentication authentication, String chatRoomId, TextChannelCreationRequest textChannelCreationRequest
@@ -52,7 +60,9 @@ public class TextChannelService {
             );
         }
         TextChannel textChannel = new TextChannel(title, owner, chatRoom);
-        return new TextChannelResponse(textChannelMongoRepository.save(textChannel));
+        TextChannel savedChannel = textChannelMongoRepository.save(textChannel);
+        publishChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_CREATED, savedChannel);
+        return new TextChannelResponse(savedChannel);
     }
 
     private void validateTitle(String title) throws CustomIllegalArgumentException {
@@ -94,12 +104,15 @@ public class TextChannelService {
             throw new CustomIllegalArgumentException("NO_AUTHORITY", "You are not the owner");
         }
         textChannel.setTitle(textChannelRequest.getTitle());
-        return new TextChannelResponse(textChannelMongoRepository.save(textChannel));
+        TextChannel savedChannel = textChannelMongoRepository.save(textChannel);
+        publishChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_UPDATED, savedChannel);
+        return new TextChannelResponse(savedChannel);
     }
 
+    @Transactional(rollbackFor = CustomException.class)
     public void delete(
         Authentication authentication, String textChannelId
-    ) throws CustomEntityNotFoundException, CustomIllegalArgumentException {
+    ) throws CustomEntityNotFoundException, CustomIllegalArgumentException, CustomResourceConflictException {
         User owner = (User) authentication.getPrincipal();
         TextChannel textChannel = textChannelMongoRepository.findById(textChannelId).orElseThrow(
             () -> new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found")
@@ -107,7 +120,42 @@ public class TextChannelService {
         if (!textChannel.getOwner().getId().equals(owner.getId())) {
             throw new CustomIllegalArgumentException("NO_AUTHORITY", "You are not the owner");
         }
+        ChatRoom chatRoom = textChannel.getChatRoom();
+        try {
+            chatRoomMongoRepository.lockForTextChannelDeletion(chatRoom.getId());
+        } catch (DataAccessException exception) {
+            if (exception.getMostSpecificCause() instanceof MongoException mongoError
+                && mongoError.getCode() == MONGO_WRITE_CONFLICT) {
+                throw new CustomResourceConflictException("WRITE_CONFLICT", "The chat room changed. Try again.");
+            }
+            throw exception;
+        }
+        if (textChannelMongoRepository.countByChatRoom(chatRoom) <= 1) {
+            throw new CustomIllegalArgumentException(
+                "LAST_TEXT_CHANNEL", "A chat room must have at least one text channel."
+            );
+        }
         textChannelMongoRepository.delete(textChannel);
+        publishChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, textChannel);
+    }
+
+    @Transactional(readOnly = true)
+    public TextChannelResponse get(Authentication authentication, String textChannelId)
+        throws CustomEntityNotFoundException {
+        TextChannel channel = textChannelMongoRepository.findById(textChannelId).orElseThrow(
+            () -> new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found")
+        );
+        User user = (User) authentication.getPrincipal();
+        if (!chatSubscriptMongoRepository.existsByUserIdAndChatRoomId(user.getId(), channel.getChatRoom().getId())) {
+            throw new CustomEntityNotFoundException("NOT_FOUND", "Text channel not found");
+        }
+        return new TextChannelResponse(channel);
+    }
+
+    private void publishChannelEvent(TextChannelEvent.Type type, TextChannel channel) {
+        chatSessionEventPublisher.publishToRoomAfterCommit(
+            new TextChannelEvent(type, channel.getChatRoom().getId(), channel.getId())
+        );
     }
 }
 

@@ -2,6 +2,9 @@ package discord.chat.api.domain.chat.room;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.application.session.TextChannelEvent;
+import discord.chat.api.application.session.ChatSessionEventHandler;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
 import discord.chat.api.domain.chat.channel.TextChannelService;
 import discord.chat.api.domain.chat.subscription.ChatSubscriptionService;
@@ -50,6 +53,10 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private TextChannelService textChannelService;
     @Autowired
+    private TextChannelCache textChannelCache;
+    @Autowired
+    private ChatSessionEventHandler chatSessionEventHandler;
+    @Autowired
     private ChannelAccessService channelAccessService;
     @Autowired
     private UserMongoRepository userMongoRepository;
@@ -78,22 +85,20 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             ChatSessionEvent.join(owner.getName(), "owner", null, chatRoomId)
         );
         assertThat(textChannelService.getAllByChatRoom(owner, chatRoomId)).hasSize(1);
-        assertThat(channelAccessService.getTextChannelsBy(owner.getName()))
-            .extracting(channel -> channel.getChatRoom().getId())
+        assertThat(channelAccessService.getChatRoomIdsBy(owner.getName()))
             .containsExactly(chatRoomId);
 
         Authentication member = authenticate("member");
-        assertThat(channelAccessService.getTextChannelsBy(member.getName())).isEmpty();
+        assertThat(channelAccessService.getChatRoomIdsBy(member.getName())).isEmpty();
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
         chatSubscriptionService.subscribe(member, chatRoomId);
         ChatSessionEvent join = ChatSessionEvent.join(member.getName(), "member", null, chatRoomId);
         verify(chatSessionEventPublisher).publishToUserAfterCommit(join);
         verify(chatSessionEventPublisher).publishToRoomAfterCommit(join);
-        assertThat(channelAccessService.getTextChannelsBy(member.getName()))
-            .extracting(channel -> channel.getChatRoom().getId())
+        assertThat(channelAccessService.getChatRoomIdsBy(member.getName()))
             .containsExactly(chatRoomId);
-        assertThat(channelAccessService.getTextChannelsBy(member.getName(), chatRoomId)).hasSize(1);
+        assertThat(channelAccessService.hasChatRoomAccess(member.getName(), chatRoomId)).isTrue();
         assertThat(chatRoomParticipantService.getParticipants(member, chatRoomId))
             .extracting("nickName").containsExactlyInAnyOrder("owner", "member");
 
@@ -109,8 +114,8 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
         verify(chatSessionEventPublisher).publishToRoomAfterCommit(
             ChatSessionEvent.leave(member.getName(), "member", chatRoomId)
         );
-        assertThat(channelAccessService.getTextChannelsBy(member.getName())).isEmpty();
-        assertThat(channelAccessService.getTextChannelsBy(member.getName(), chatRoomId)).isEmpty();
+        assertThat(channelAccessService.getChatRoomIdsBy(member.getName())).isEmpty();
+        assertThat(channelAccessService.hasChatRoomAccess(member.getName(), chatRoomId)).isFalse();
         assertThatThrownBy(() -> chatRoomParticipantService.getParticipants(member, chatRoomId))
             .isInstanceOf(CustomAuthorizationError.class);
 
@@ -135,12 +140,24 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
             "{\"title\":\"Topic\"}", TextChannelCreationRequest.class
         );
         String textChannelId = textChannelService.create(owner, chatRoomId, textChannelCreationRequest).getId();
+        assertThat(textChannelCache.belongsToRoom(textChannelId, chatRoomId)).isTrue();
+        assertThat(textChannelCache.belongsToRoom(textChannelId, "other-room")).isFalse();
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
+            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_CREATED, chatRoomId, textChannelId)
+        );
         TextChannelRequest updateRequest = objectMapper.readValue(
             "{\"id\":\"" + textChannelId + "\",\"title\":\"Updated\"}", TextChannelRequest.class
         );
         assertThat(textChannelService.update(owner, updateRequest).getTitle()).isEqualTo("Updated");
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
+            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_UPDATED, chatRoomId, textChannelId)
+        );
 
+        mockMvc.perform(get("/text-channels/{id}", textChannelId).with(authentication(owner)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Updated"));
         Authentication otherUser = authenticate("other");
+        assertThatThrownBy(() -> textChannelService.get(otherUser, textChannelId))
+            .isInstanceOf(CustomEntityNotFoundException.class);
         assertThatThrownBy(() -> textChannelService.delete(otherUser, textChannelId))
             .isInstanceOf(CustomIllegalArgumentException.class);
         assertThatThrownBy(() -> chatRoomService.delete(otherUser, chatRoomId))
@@ -148,7 +165,20 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
 
         SecurityContextHolder.getContext().setAuthentication(owner);
         textChannelService.delete(owner, textChannelId);
+        verify(chatSessionEventPublisher).publishToRoomAfterCommit(
+            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, chatRoomId, textChannelId)
+        );
         assertThat(textChannelMongoRepository.findById(textChannelId)).isEmpty();
+        chatSessionEventHandler.handleTextChannelEvent(
+            new TextChannelEvent(TextChannelEvent.Type.TEXT_CHANNEL_DELETED, chatRoomId, textChannelId)
+        );
+        assertThat(textChannelCache.belongsToRoom(textChannelId, chatRoomId)).isFalse();
+
+        String lastChannelId = textChannelService.getAllByChatRoom(owner, chatRoomId).get(0).getId();
+        assertThatThrownBy(() -> textChannelService.delete(owner, lastChannelId))
+            .isInstanceOf(CustomIllegalArgumentException.class)
+            .hasMessage("A chat room must have at least one text channel.");
+        assertThat(textChannelMongoRepository.existsById(lastChannelId)).isTrue();
         SecurityContextHolder.clearContext();
     }
 
@@ -164,7 +194,7 @@ class ChatRoomIntegrationTest extends BaseIntegrationTest {
     void rejectsDeletedUsersWhenResolvingChannelAccess() {
         Authentication user = authenticate("removed");
         userMongoRepository.deleteById(user.getName());
-        assertThatThrownBy(() -> channelAccessService.getTextChannelsBy(user.getName()))
+        assertThatThrownBy(() -> channelAccessService.getChatRoomIdsBy(user.getName()))
             .isInstanceOf(AccessDeniedException.class);
     }
 

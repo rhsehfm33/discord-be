@@ -5,13 +5,12 @@ import discord.chat.api.application.message.ChatRoomMessageDelivery;
 import discord.chat.api.application.session.ChatSessionEvent;
 import discord.chat.api.application.session.ChatSessionEventHandler;
 import discord.chat.api.domain.chat.channel.ChannelAccessService;
+import discord.chat.api.domain.chat.channel.TextChannelCache;
 import discord.chat.api.infrastructure.websocket.ChatSessionRegistry;
 import discord.chat.api.infrastructure.websocket.WebSocketUserMessageSender;
 import discord.chat.api.interfaces.chat.room.ChatRoomEventResponse;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import discord.chat.api.interfaces.message.MessageSenderResponse;
-import discord.chat.common.infrastructure.chat.channel.TextChannel;
-import discord.chat.common.infrastructure.chat.room.ChatRoom;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -50,9 +49,9 @@ class RedisFanOutIntegrationTest {
         ) {
             registerEmptySession(firstServerContext, "user", "first");
             registerEmptySession(secondServerContext, "user", "second");
-            registerSession(firstServerContext, "member", "member-session", "room", "channel");
-            allowRoomAccess(firstServerContext, "user", "room", "channel");
-            allowRoomAccess(secondServerContext, "user", "room", "channel");
+            registerSession(firstServerContext, "member", "member-session", "room");
+            allowRoomAccess(firstServerContext, "user", "room");
+            allowRoomAccess(secondServerContext, "user", "room");
 
             ChatSessionEventPublisher publisher = firstServerContext.getBean(ChatSessionEventPublisher.class);
             ChatSessionEvent join = ChatSessionEvent.join("user", "nickname", null, "room");
@@ -61,9 +60,9 @@ class RedisFanOutIntegrationTest {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 assertThat(firstServerContext.getBean(ChatSessionRegistry.class)
-                    .hasChannelAccess("user", "room", "channel")).isTrue();
+                    .hasRoomAccess("user", "room")).isTrue();
                 assertThat(secondServerContext.getBean(ChatSessionRegistry.class)
-                    .hasChannelAccess("user", "room", "channel")).isTrue();
+                    .hasRoomAccess("user", "room")).isTrue();
             });
             ArgumentCaptor<ChatRoomEventResponse> notification = ArgumentCaptor.forClass(ChatRoomEventResponse.class);
             verify(firstServerContext.getBean(SimpMessagingTemplate.class), timeout(5000)).convertAndSendToUser(
@@ -84,9 +83,9 @@ class RedisFanOutIntegrationTest {
             var secondServerContext = createInstance(redisNamespace);
             var otherRoomServerContext = createInstance(redisNamespace)
         ) {
-            registerSession(firstServerContext, "first-user", "first", "room", "channel");
-            registerSession(secondServerContext, "second-user", "second", "room", "channel");
-            registerSession(otherRoomServerContext, "other-user", "other", "other-room", "other-channel");
+            registerSession(firstServerContext, "first-user", "first", "room");
+            registerSession(secondServerContext, "second-user", "second", "room");
+            registerSession(otherRoomServerContext, "other-user", "other", "other-room");
 
             ChatMessageResponse publishedMessage = new ChatMessageResponse(
                 "message", "room", "channel",
@@ -132,16 +131,10 @@ class RedisFanOutIntegrationTest {
         AnnotationConfigApplicationContext serverContext,
         String userId,
         String sessionId,
-        String chatRoomId,
-        String textChannelId
+        String chatRoomId
     ) {
-        TextChannel textChannel = mock(TextChannel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        when(textChannel.getId()).thenReturn(textChannelId);
-        when(textChannel.getChatRoom()).thenReturn(chatRoom);
-        when(chatRoom.getId()).thenReturn(chatRoomId);
         ChannelAccessService channelAccessService = serverContext.getBean(ChannelAccessService.class);
-        when(channelAccessService.getTextChannelsBy(userId)).thenReturn(List.of(textChannel));
+        when(channelAccessService.getChatRoomIdsBy(userId)).thenReturn(List.of(chatRoomId));
         serverContext.getBean(ChatSessionRegistry.class).register(userId, sessionId);
     }
 
@@ -158,16 +151,10 @@ class RedisFanOutIntegrationTest {
     private void allowRoomAccess(
         AnnotationConfigApplicationContext serverContext,
         String userId,
-        String chatRoomId,
-        String textChannelId
+        String chatRoomId
     ) {
-        TextChannel textChannel = mock(TextChannel.class);
-        ChatRoom chatRoom = mock(ChatRoom.class);
-        when(textChannel.getId()).thenReturn(textChannelId);
-        when(textChannel.getChatRoom()).thenReturn(chatRoom);
-        when(chatRoom.getId()).thenReturn(chatRoomId);
         ChannelAccessService channelAccessService = serverContext.getBean(ChannelAccessService.class);
-        when(channelAccessService.getTextChannelsBy(userId, chatRoomId)).thenReturn(List.of(textChannel));
+        when(channelAccessService.hasChatRoomAccess(userId, chatRoomId)).thenReturn(true);
     }
 
     // Waits for delivery and checks the message and target user.
@@ -218,6 +205,12 @@ class RedisFanOutIntegrationTest {
         @Bean
         SimpMessagingTemplate messagingTemplate() {
             return mock(SimpMessagingTemplate.class);
+        }
+
+        // Replaces channel caching for room membership and delivery tests.
+        @Bean
+        TextChannelCache textChannelCache() {
+            return mock(TextChannelCache.class);
         }
 
         // Replaces database access with a mock for session membership events.

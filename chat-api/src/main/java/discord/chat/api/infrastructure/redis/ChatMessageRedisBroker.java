@@ -3,6 +3,7 @@ package discord.chat.api.infrastructure.redis;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.application.session.TextChannelEvent;
 import discord.chat.api.interfaces.message.ChatMessageResponse;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
@@ -85,6 +86,11 @@ public class ChatMessageRedisBroker {
                 }
                 case SESSION_EVENT -> {
                     ChatSessionEvent event = objectMapper.treeToValue(payload.data(), ChatSessionEvent.class);
+                    requireRoomChannel(channel, event.chatRoomId());
+                    applicationEventPublisher.publishEvent(event);
+                }
+                case TEXT_CHANNEL_EVENT -> {
+                    TextChannelEvent event = objectMapper.treeToValue(payload.data(), TextChannelEvent.class);
                     requireRoomChannel(channel, event.chatRoomId());
                     applicationEventPublisher.publishEvent(event);
                 }

@@ -2,6 +2,7 @@ package discord.chat.api.infrastructure.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.chat.api.application.session.ChatSessionEvent;
+import discord.chat.api.application.session.TextChannelEvent;
 import io.lettuce.core.RedisFuture;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
 import lombok.RequiredArgsConstructor;
@@ -19,46 +20,47 @@ public class ChatSessionEventPublisher {
     private final ObjectMapper objectMapper;
 
     public void publishToUserAfterCommit(ChatSessionEvent event) {
-        publishAfterCommit(event, redisChannels.personal(event.userId()));
+        publishAfterCommit(redisChannels.personal(event.userId()), new OutgoingRedisPayload(RedisPayloadType.SESSION_EVENT, event));
     }
 
     public void publishToRoomAfterCommit(ChatSessionEvent event) {
-        publishAfterCommit(event, redisChannels.room(event.chatRoomId()));
+        publishAfterCommit(redisChannels.room(event.chatRoomId()), new OutgoingRedisPayload(RedisPayloadType.SESSION_EVENT, event));
     }
 
-    private void publishAfterCommit(ChatSessionEvent event, String channel) {
+    public void publishToRoomAfterCommit(TextChannelEvent event) {
+        publishAfterCommit(redisChannels.room(event.chatRoomId()), new OutgoingRedisPayload(RedisPayloadType.TEXT_CHANNEL_EVENT, event));
+    }
+
+    private void publishAfterCommit(String channel, OutgoingRedisPayload event) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()
             || !TransactionSynchronizationManager.isSynchronizationActive()) {
-            publish(event, channel);
+            publish(channel, event);
             return;
         }
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-            publish(event, channel);
+                publish(channel, event);
             }
         });
     }
 
-    private void publish(ChatSessionEvent event, String channel) {
+    private void publish(String channel, OutgoingRedisPayload event) {
         try {
-            String payload = objectMapper.writeValueAsString(
-                new OutgoingRedisPayload(RedisPayloadType.SESSION_EVENT, event)
-            );
+            String payload = objectMapper.writeValueAsString(event);
             RedisFuture<Long> publication = redisClusterConnection.async().spublish(channel, payload);
             publication.whenComplete((subscriberCount, error) -> {
                 if (error != null) {
-                    logPublicationFailure(event, error);
+                    logPublicationFailure(channel, event, error);
                 }
             });
         } catch (Exception exception) {
-            logPublicationFailure(event, exception);
+            logPublicationFailure(channel, event, exception);
         }
     }
 
-    private void logPublicationFailure(ChatSessionEvent event, Throwable error) {
-        log.error("Chat session event publication failed: type={}, userId={}, chatRoomId={}",
-            event.type(), event.userId(), event.chatRoomId(), error);
+    private void logPublicationFailure(String channel, OutgoingRedisPayload event, Throwable error) {
+        log.error("Redis event publication failed: channel={}, event={}", channel, event.data(), error);
     }
 }
